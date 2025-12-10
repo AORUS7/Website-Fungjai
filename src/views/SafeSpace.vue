@@ -1,64 +1,3 @@
-<script setup>
-import { ref, nextTick } from "vue";
-
-const messages = ref([
-  {
-    id: 1,
-    from: "bot",
-    name: "FUNGJAI",
-    text: "สวัสดีค่ะ ขอบคุณที่เข้ามาใน SAFE SPACE วันนี้นะ เราพร้อมฟังเรื่องของคุณเสมอค่ะ 🤍",
-    time: "ตอนนี้",
-  },
-]);
-
-const userInput = ref("");
-let idCounter = 2;
-
-const scrollToBottom = async () => {
-  await nextTick();
-  const box = document.querySelector(".chat-window-body");
-  if (box) {
-    box.scrollTop = box.scrollHeight;
-  }
-};
-
-const sendMessage = async () => {
-  const text = userInput.value.trim();
-  if (!text) return;
-
-  messages.value.push({
-    id: idCounter++,
-    from: "user",
-    name: "คุณ",
-    text,
-    time: "ตอนนี้",
-  });
-  userInput.value = "";
-  await scrollToBottom();
-
-  // จำลองบอทตอบ (เวอร์ชันทดสอบ ยังไม่ได้ต่อ API จริง)
-  setTimeout(async () => {
-    const reply =
-      "ขอบคุณที่เล่าให้ฟังนะคะ สิ่งที่คุณรู้สึกสำคัญมากเลย ❤️\nตอนนี้คุณไม่จำเป็นต้องรีบหาคำตอบก็ได้ แค่ค่อย ๆ เล่าในจังหวะที่คุณสบายใจก็พอค่ะ";
-    messages.value.push({
-      id: idCounter++,
-      from: "bot",
-      name: "FUNGJAI",
-      text: reply,
-      time: "เมื่อสักครู่",
-    });
-    await scrollToBottom();
-  }, 700);
-};
-
-const handleKeydown = (e) => {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
-};
-</script>
-
 <template>
   <div class="page">
     <main>
@@ -66,31 +5,29 @@ const handleKeydown = (e) => {
         <div class="container hero-inner">
           <div>
             <div class="hero-highlight">พื้นที่ปลอดภัย</div>
-            <h1 class="hero-title">SAFE SPACE – แชทกับใจของคุณได้ที่นี่</h1>
+            <h1 class="hero-title">SAFE SPACE – พื้นที่เล่าเรื่องของคุณ</h1>
             <p class="hero-text">
-              ถ้าคุณมีเรื่องที่ไม่รู้จะเล่าให้ใครฟัง หรือแค่อยากมีใครสักคนที่รับฟังอย่างไม่ตัดสิน
-              คุณสามารถใช้ห้องแชทนี้เป็นมุมเล็ก ๆ
-              สำหรับระบายและค่อย ๆ ทำความเข้าใจความรู้สึกของตัวเองได้เลยค่ะ
+              ถ้าคุณมีเรื่องที่ไม่รู้จะเล่าให้ใครฟัง หรือแค่อยากมีใครสักคนที่เข้าใจความรู้สึกของคุณจริง ๆ
+              คุณสามารถใช้พื้นที่ตรงนี้ได้เสมอ เราจะไม่ตัดสิน และจะฟังด้วยความอ่อนโยนที่สุดเท่าที่ทำได้
             </p>
             <div class="hero-actions">
-              <a href="#chat" class="btn btn-primary">เริ่มคุยกับ FUNGJAI</a>
+              <button class="btn btn-primary" @click="openChat">
+                เริ่มคุยกับ FUNGJAI ผ่าน LINE
+              </button>
             </div>
-            <div class="hero-note">
-              คุณไม่จำเป็นต้องใช้ชื่อจริง ไม่ต้องเรียบเรียงให้สวยงาม
-              แค่เป็นตัวคุณในแบบที่คุณไหวในวันนี้ก็พอแล้ว 🤍
-            </div>
+            <p class="hero-note">
+              คุณไม่จำเป็นต้องใช้ชื่อจริง เล่าเท่าที่สบายใจในจังหวะของตัวเองก็พอ
+            </p>
           </div>
 
           <div class="hero-visual">
-            <!-- การ์ดจำลองหน้าจอมือถือ / chatbot profile -->
             <div class="hero-card">
               <div class="hero-chip">
                 <span class="hero-chip-dot"></span>
-                ออนไลน์ · พร้อมรับฟัง
+                คุณไม่จำเป็นต้องบอกชื่อจริงก็ได้
               </div>
               <p class="hero-quote">
-                “คุณไม่ได้เป็นภาระ เพียงเพราะคุณกำลังรู้สึกบางอย่างอย่างหนักหน่วง
-                การขอให้ใครสักคนฟัง ไม่ได้ทำให้คุณแย่ลงเลยค่ะ”
+                “คุณไม่ได้เป็นภาระของใคร เพียงเพราะคุณรู้สึกบางอย่างมากกว่าปกติ”
                 <small>ข้อความเล็ก ๆ จาก SAFE SPACE</small>
               </p>
             </div>
@@ -98,290 +35,369 @@ const handleKeydown = (e) => {
         </div>
       </section>
 
-      <!-- กติกา / อธิบาย SAFE SPACE -->
       <section class="section section--soft">
         <div class="container">
           <div class="section-header">
-            <h2 class="section-title">ก่อนเริ่มคุยกัน เราอยากบอกคุณเล็กน้อย</h2>
+            <h2 class="section-title">กติกาเล็ก ๆ ของพื้นที่นี้</h2>
             <p class="section-subtitle">
-              เพื่อให้ที่นี่เป็นพื้นที่ปลอดภัยสำหรับคุณ ลองอ่านข้อตกลงเล็ก ๆ
-              ต่อไปนี้ก่อนค่ะ
+              เพื่อให้ที่นี่เป็นพื้นที่ปลอดภัยสำหรับทุกคน เราอยากชวนคุณตกลงกันเล็กน้อย
             </p>
           </div>
 
           <div class="card card-soft">
             <p>
-              เราอยากให้ SAFE SPACE เป็นที่ที่คุณรู้สึกว่า
+              เราอยากให้ SAFE SPACE เป็นมุมเล็ก ๆ ที่คุณรู้สึกว่า
               “พูดความรู้สึกของตัวเองได้ โดยไม่ต้องกลัวว่าจะถูกตัดสิน”
             </p>
             <ul class="rules-list">
-              <li>คุณสามารถใช้ชื่อเล่นหรือไม่ระบุชื่อเลยก็ได้</li>
-              <li>ข้อความของคุณจะถูกมองด้วยความเคารพและไม่ตัดสิน</li>
+              <li>คุณสามารถเล่าเรื่องของคุณได้เต็มที่ โดยไม่จำเป็นต้องใช้ชื่อจริง</li>
+              <li>ทุกเรื่องที่ถูกเล่า จะได้รับการฟังด้วยความเคารพและไม่ตัดสิน</li>
               <li>
-                ถ้าเรื่องของคุณเกี่ยวกับอันตรายเร่งด่วนต่อชีวิตหรือการทำร้ายตัวเอง
-                โปรดพิจารณาติดต่อผู้เชี่ยวชาญหรือสายด่วนใกล้ตัวควบคู่กันไปด้วย
+                ถ้าเรื่องของคุณเกี่ยวข้องกับการทำร้ายตัวเองหรือผู้อื่นอย่างรุนแรง
+                เราอยากชวนให้คุณติดต่อผู้เชี่ยวชาญ หรือสายด่วนที่ให้การช่วยเหลือร่วมด้วย
               </li>
-              <li>
-                คุณมีสิทธิ์หยุดพิมพ์ออกจากหน้านี้เมื่อไรก็ได้
-                ถ้าเริ่มรู้สึกไม่สบายใจ
-              </li>
+              <li>คุณมีสิทธิ์หยุดเล่าเมื่อไรก็ได้ ถ้ารู้สึกไม่สบายใจ</li>
             </ul>
           </div>
         </div>
       </section>
+    </main>
 
-      <!-- CHAT AREA -->
-      <section id="chat" class="section section--highlight">
-        <div class="container">
-          <div class="section-header">
-            <h2 class="section-title">ห้องแชท SAFE SPACE</h2>
-            <p class="section-subtitle">
-              แชทนี้เป็นเวอร์ชันทดสอบที่ช่วยให้คุณได้เขียนความรู้สึกออกมา
-              ถ้าอยากต่อยอดให้ตอบแบบ AI จริง ๆ
-              สามารถเชื่อมต่อกับระบบหลังบ้านหรือ OpenAI API ได้ภายหลัง
-            </p>
+    <button class="chat-fab" @click="toggleChat">
+      <span class="chat-fab-dot" :class="{ 'chat-fab-dot--notify': !hasOpenedOnce }"></span>
+      <div class="chat-fab-line">
+        <span class="chat-fab-line-text">LINE</span>
+      </div>
+    </button>
+
+    <!-- CHAT PANEL -->
+    <transition name="chat-fade">
+      <div v-if="isChatOpen" class="chat-panel">
+        <!-- header -->
+        <header class="chat-header">
+          <div class="chat-header-left">
+            <div class="chat-avatar">
+              <span>FJ</span>
+            </div>
+            <div>
+              <div class="chat-name">FUNGJAI</div>
+              <div class="chat-status">
+                <span class="chat-status-dot"></span>
+                พูดคุยผ่าน LINE Official
+              </div>
+            </div>
+          </div>
+          <button class="chat-close-btn" @click="closeChat">✕</button>
+        </header>
+
+        <!-- body -->
+        <div class="chat-body">
+          <!-- ข้อความต้อนรับ -->
+          <div class="chat-message chat-message--bot">
+            <div class="chat-message-bubble">
+              สวัสดีจาก SAFE SPACE นะ 🌸<br />
+              ถ้าคุณอยากเล่าเรื่องในใจ หรืออยากให้เราฟังอย่างอ่อนโยน
+              สามารถทักหาเราใน LINE ได้เลย
+            </div>
+            <div class="chat-message-time">ตอนนี้</div>
           </div>
 
-          <div class="chat-layout">
-            <!-- กล่องแชทหลัก -->
-            <div class="chat-window card">
-              <div class="chat-window-header">
-                <div class="chat-avatar">
-                  <span>FJ</span>
-                </div>
-                <div class="chat-header-text">
-                  <div class="chat-title">FUNGJAI • Safe Space Bot</div>
-                  <div class="chat-subtitle">พร้อมรับฟัง · ไม่ตัดสิน · ตอบอย่างอ่อนโยน</div>
-                </div>
-              </div>
+          <div class="chat-footer-cta">
+            <p class="chat-footer-title">เริ่มคุยกับเราได้ผ่าน LINE</p>
+            <p class="chat-footer-desc">
+              คลิกปุ่มด้านล่างนี้ เพื่อเปิดห้องแชท FUNGJAI ในแอป LINE หรือบนเว็บ LINE
+            </p>
 
-              <div class="chat-window-body">
-                <div
-                  v-for="m in messages"
-                  :key="m.id"
-                  class="chat-message-row"
-                  :class="m.from === 'user' ? 'is-user' : 'is-bot'"
-                >
-                  <div v-if="m.from === 'bot'" class="chat-avatar chat-avatar-sm">
-                    <span>F</span>
-                  </div>
-                  <div class="chat-bubble">
-                    <p class="chat-bubble-name">{{ m.name }}</p>
-                    <p class="chat-bubble-text">
-                      <!-- รองรับขึ้นบรรทัดใหม่ -->
-                      <span
-                        v-for="(line, i) in m.text.split('\n')"
-                        :key="i"
-                      >
-                        {{ line }}<br v-if="i < m.text.split('\n').length - 1" />
-                      </span>
-                    </p>
-                    <p class="chat-bubble-meta">{{ m.time }}</p>
-                  </div>
-                </div>
-              </div>
-
-              <form class="chat-input-row" @submit.prevent="sendMessage">
-                <textarea
-                  v-model="userInput"
-                  class="chat-input"
-                  placeholder="อยากเล่าอะไรให้ FUNGJAI ฟังบ้างคะ พิมพ์ได้เต็มที่เลย…"
-                  rows="2"
-                  @keydown="handleKeydown"
-                ></textarea>
-                <button type="submit" class="btn btn-primary chat-send-btn">
-                  ส่งข้อความ
-                </button>
-              </form>
-              <p class="chat-hint">
-                กด <strong>Enter</strong> เพื่อส่งข้อความ · กด <strong>Shift + Enter</strong> เพื่อขึ้นบรรทัดใหม่
-              </p>
-            </div>
-
-            <!-- กล่องคำอธิบายด้านข้าง -->
-            <div class="chat-side card card-soft">
-              <h3 class="card-title">วันนี้คุณอยากให้แชทนี้เป็นยังไง?</h3>
-              <p class="card-text">
-                คุณอาจใช้ที่นี่เพื่อ…
-              </p>
-              <ul class="bullet-list">
-                <li>ระบายเรื่องที่ค้างอยู่ในใจมานาน</li>
-                <li>เขียนสิ่งที่กลัวจะพูดออกมาดัง ๆ กับใครสักคน</li>
-                <li>เล่าเรื่องดี ๆ เล็ก ๆ ที่ทำให้คุณยิ้มในวันนี้</li>
-              </ul>
-              <p class="card-text">
-                ไม่จำเป็นต้องเล่าให้ครบทุกอย่างในครั้งเดียวก็ได้
-                คุณสามารถกลับมาเมื่อไรก็ได้ในจังหวะที่หัวใจคุณไหวค่ะ 🌷
-              </p>
-            </div>
+            <!-- ปุ่ม LINE จริง: เปลี่ยน href เป็นลิงก์ LINE Official ของเธอ -->
+            <a
+              class="chat-line-btn"
+              href="https://line.me/R/ti/p/@YOUR_LINE_ID"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span class="chat-line-logo">LINE</span>
+              <span class="chat-line-text">แชทกับ FUNGJAI ผ่าน LINE</span>
+            </a>
           </div>
         </div>
-      </section>
-    </main>
+      </div>
+    </transition>
   </div>
 </template>
 
+<script setup lang="ts">
+import { ref } from "vue";
+
+const isChatOpen = ref(false);
+const hasOpenedOnce = ref(false);
+
+const openChat = () => {
+  isChatOpen.value = true;
+  hasOpenedOnce.value = true;
+};
+
+const closeChat = () => {
+  isChatOpen.value = false;
+};
+
+const toggleChat = () => {
+  isChatOpen.value = !isChatOpen.value;
+  if (isChatOpen.value) {
+    hasOpenedOnce.value = true;
+  }
+};
+</script>
+
 <style scoped>
-.chat-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.8fr) minmax(0, 1.1fr);
-  gap: 1.5rem;
-}
-
-.chat-window {
+.chat-fab {
+  position: fixed;
+  right: 1.8rem;
+  bottom: 1.8rem;
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  border: none;
+  outline: none;
+  cursor: pointer;
   display: flex;
-  flex-direction: column;
-  padding: 1.4rem 1.3rem;
-}
-
-.chat-window-header {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid rgba(255, 200, 200, 0.6);
-  padding-bottom: 0.7rem;
-}
-
-.chat-avatar,
-.chat-avatar-sm {
-  display: inline-flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
+  background: #00c300; /* โทนเขียว LINE */
+  color: #ffffff;
+  z-index: 50;
+}
+
+.chat-fab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.2);
+}
+
+.chat-fab-dot {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ffffff;
+  opacity: 0.3;
+  transition: all 0.2s ease;
+}
+
+.chat-fab-dot--notify {
+  opacity: 1;
+  background: #ffeb3b;
+}
+
+.chat-fab-line {
+  width: 44px;
+  height: 44px;
   border-radius: 999px;
-  background: #ffe0df;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #d05a52;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-fab-line-text {
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: #00c300;
+}
+
+/* แผงแชท */
+.chat-panel {
+  position: fixed;
+  right: 1.6rem;
+  bottom: 5.6rem;
+  width: 360px;
+  max-height: 480px;
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 60;
+}
+
+/* header */
+.chat-header {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid rgba(255, 210, 210, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff7f7;
+}
+
+.chat-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
 
 .chat-avatar {
-  width: 38px;
-  height: 38px;
-}
-
-.chat-avatar-sm {
-  width: 28px;
-  height: 28px;
-  margin-right: 0.45rem;
-}
-
-.chat-header-text {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #ffe6e0, #ff8a80);
   display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-
-.chat-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-}
-
-.chat-subtitle {
+  align-items: center;
+  justify-content: center;
   font-size: 0.8rem;
-  color: var(--color-text-soft);
+  font-weight: 700;
+  color: #ffffff;
 }
 
-.chat-window-body {
-  flex: 1;
-  min-height: 220px;
-  max-height: 360px;
-  overflow-y: auto;
-  padding-right: 0.4rem;
-  margin-bottom: 0.8rem;
-}
-
-.chat-message-row {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 0.75rem;
-}
-
-.chat-message-row.is-user {
-  justify-content: flex-end;
-}
-
-.chat-message-row.is-user .chat-bubble {
-  background: #fff4f0;
-  align-items: flex-end;
-}
-
-.chat-message-row.is-user .chat-bubble-name {
-  text-align: right;
-}
-
-.chat-message-row.is-user .chat-bubble-meta {
-  text-align: right;
-}
-
-.chat-bubble {
-  max-width: 100%;
-  padding: 0.65rem 0.75rem;
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: var(--shadow-soft);
-  border: 1px solid rgba(255, 210, 205, 0.8);
-}
-
-.chat-bubble-name {
-  font-size: 0.8rem;
-  font-weight: 600;
-  margin: 0 0 0.18rem;
-}
-
-.chat-bubble-text {
+.chat-name {
   font-size: 0.9rem;
-  margin: 0 0 0.18rem;
-  white-space: pre-wrap;
+  font-weight: 600;
 }
 
-.chat-bubble-meta {
+.chat-status {
   font-size: 0.75rem;
-  color: var(--color-text-soft);
-  margin: 0;
-}
-
-.chat-input-row {
+  color: #777;
   display: flex;
-  gap: 0.7rem;
-  align-items: flex-end;
-  margin-top: 0.3rem;
+  align-items: center;
+  gap: 0.25rem;
 }
 
-.chat-input {
+.chat-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6dd1a1;
+}
+
+.chat-close-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #999;
+}
+
+.chat-close-btn:hover {
+  color: #555;
+}
+
+/* body */
+.chat-body {
+  padding: 0.85rem 0.9rem 1.1rem;
   flex: 1;
-  resize: none;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 200, 200, 0.9);
-  padding: 0.55rem 0.7rem;
-  font-family: inherit;
+  overflow-y: auto;
+  background: linear-gradient(180deg, #fff9f9 0%, #ffece7 100%);
+}
+
+.chat-message {
+  margin-bottom: 0.7rem;
+  max-width: 90%;
+}
+
+.chat-message--bot .chat-message-bubble {
+  background: #ffffff;
+  color: #333;
+  border-radius: 16px 16px 16px 4px;
+}
+
+.chat-message-bubble {
+  padding: 0.7rem 0.8rem;
   font-size: 0.9rem;
   line-height: 1.5;
-  outline: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
 }
 
-.chat-input:focus {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 1px rgba(255, 138, 128, 0.4);
+.chat-message-time {
+  margin-top: 0.25rem;
+  font-size: 0.7rem;
+  color: rgba(0, 0, 0, 0.45);
 }
 
-.chat-send-btn {
-  flex-shrink: 0;
+/* footer CTA */
+.chat-footer-cta {
+  margin-top: 0.8rem;
+  padding: 0.9rem 0.8rem 0.4rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
 }
 
-.chat-hint {
-  font-size: 0.75rem;
-  color: var(--color-text-soft);
-  margin-top: 0.4rem;
+.chat-footer-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.94rem;
+  font-weight: 600;
 }
 
-.chat-side {
-  align-self: flex-start;
+.chat-footer-desc {
+  margin: 0 0 0.7rem;
+  font-size: 0.8rem;
+  color: #666;
 }
 
-@media (max-width: 900px) {
-  .chat-layout {
-    grid-template-columns: minmax(0, 1fr);
+.chat-line-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 999px;
+  text-decoration: none;
+  background: #00c300;
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 8px 20px rgba(0, 195, 0, 0.4);
+}
+
+.chat-line-btn:hover {
+  background: #00ad00;
+}
+
+.chat-line-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #00c300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.chat-line-text {
+  white-space: nowrap;
+}
+
+.chat-fade-enter-active,
+.chat-fade-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.chat-fade-enter-from,
+.chat-fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+@media (max-width: 600px) {
+  .chat-panel {
+    right: 0.75rem;
+    left: 0.75rem;
+    bottom: 4.8rem;
+    width: auto;
+    max-height: 70vh;
+  }
+
+  .chat-fab {
+    right: 1rem;
+    bottom: 1.2rem;
+  }
+
+  .chat-line-text {
+    white-space: normal;
   }
 }
 </style>
