@@ -444,6 +444,17 @@ main {
   margin-bottom: 0.4rem;
 }
 
+.spotify-embed-card {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.spotify-embed-wrapper {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
 /* Responsive */
 
 @media (max-width: 800px) {

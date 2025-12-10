@@ -34,7 +34,7 @@ const year = new Date().getFullYear()
             class="nav-link"
             :class="{ active: isActive('/podcast') }"
           >
-            PODTCAST
+            Podcast
           </RouterLink>
 
           <RouterLink
