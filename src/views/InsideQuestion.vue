@@ -164,7 +164,6 @@
                 </ul>
               </div>
 
-              <!-- Error -->
               <p
                 v-if="error"
                 style="color: #ff4b4b; font-size: 0.85rem; margin-bottom: 0.8rem"

@@ -49,7 +49,6 @@ import { RouterLink } from 'vue-router'
     </div>
   </section>
 
-  <!-- Section การ์ด: คุณจะเจออะไรใน FUNGJAI บ้าง -->
   <section class="section">
     <div class="container">
       <div class="section-header">
@@ -60,7 +59,6 @@ import { RouterLink } from 'vue-router'
       </div>
 
       <div class="grid-3">
-        <!-- การ์ด 1 -->
         <article class="card">
           <div class="card-tag">PODCAST</div>
           <h3 class="card-title">เล่าเรื่องใจผ่านเสียง</h3>
@@ -74,7 +72,6 @@ import { RouterLink } from 'vue-router'
           </RouterLink>
         </article>
 
-        <!-- การ์ด 2 -->
         <article class="card">
           <div class="card-tag">WHAT'S GOING ON INSIDE</div>
           <h3 class="card-title">เข้าใจโลกข้างในตัวเอง</h3>
@@ -87,7 +84,6 @@ import { RouterLink } from 'vue-router'
           </RouterLink>
         </article>
 
-        <!-- การ์ด 3 -->
         <article class="card">
           <div class="card-tag">SAFE SPACE</div>
           <h3 class="card-title">พื้นที่เล่าเรื่องของคุณ</h3>

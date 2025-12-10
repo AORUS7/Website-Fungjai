@@ -3,9 +3,7 @@
     <section class="hero">
       <div class="container hero-inner">
         <div>
-          <div class="hero-highlight">
-            พอดแคสต์สำหรับหัวใจที่กำลังคิดเยอะ
-          </div>
+          <div class="hero-highlight">พอดแคสต์สำหรับหัวใจที่กำลังคิดเยอะ</div>
           <h1 class="hero-title">พอดแคสต์ที่อยากนั่งคุยกับใจคุณ</h1>
           <p class="hero-text">
             รวมตอนสั้น ๆ ที่พูดถึงเรื่องความรู้สึก ความสัมพันธ์
@@ -13,13 +11,11 @@
             โล่งขึ้นอีกนิด
           </p>
           <div class="hero-actions">
-            <a href="#episodes" class="btn btn-primary">
-              เลือกตอนที่อยากฟัง
-            </a>
-            <!-- ถ้ามีลิงก์ Spotify/YouTube จริง ค่อยเอา # ไปแทนเป็น URL -->
-            <a href="#" class="btn btn-ghost">
+            <a href="#episodes" class="btn btn-primary">เลือกตอนที่อยากฟัง</a>
+
+            <button type="button" class="btn btn-ghost" @click="handleSpotifyClick">
               ฟังบน Spotify
-            </a>
+            </button>
           </div>
         </div>
 
@@ -39,11 +35,39 @@
       </div>
     </section>
 
-    <!-- Episodes -->
+    <section
+      v-if="showSpotify"
+      id="spotify-embed"
+      class="section"
+    >
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">ฟังบน Spotify ได้จากตรงนี้เลย</h2>
+          <p class="section-subtitle">
+            ถ้าสะดวกฟังบน Spotify อยู่แล้ว สามารถกดเล่นจากด้านล่างนี้ได้เลย
+            หรือกดเปิดในแอป/เว็บ Spotify เต็ม ๆได้เลย
+          </p>
+        </div>
+
+        <div class="card card-soft">
+          <iframe
+            style="border-radius: 12px"
+            src="https://open.spotify.com/embed/episode/4hlNCAUQpIK1BJtZKDDeeR?utm_source=generator"
+            width="100%"
+            height="232"
+            frameborder="0"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy"
+          ></iframe>
+        </div>
+      </div>
+    </section>
+
+    <!-- EPISODES -->
     <section id="episodes" class="section section--soft">
       <div class="container">
         <div class="section-header">
-          <h2 class="section-title">ตอนต่าง ๆ ใน PODCAST</h2>
+          <h2 class="section-title">ตอนต่าง ๆ ใน Podcast</h2>
           <p class="section-subtitle">
             เลือกตอนที่ตรงกับความรู้สึกของคุณในตอนนี้มากที่สุด
           </p>
@@ -57,12 +81,10 @@
             <div class="episode-meta">ระยะเวลา: ประมาณ 10–15 นาที</div>
             <p class="card-text">
               ตอนนี้ชวนคุณสำรวจความเหนื่อยที่ไม่ได้มาจากงานอย่างเดียว
-              แต่จากหัวใจที่ต้องพยายามเข้มแข็งตลอดเวลา
-              และวิธีเล็ก ๆ ที่จะเริ่มอนุญาตให้ตัวเองได้พักจริง ๆ สักที
+              แต่จากหัวใจที่ต้องพยายามเข้มแข็งตลอดเวลา และวิธีเล็ก ๆ
+              ที่จะเริ่มอนุญาตให้ตัวเองได้พักจริง ๆ สักที
             </p>
-            <a href="#" class="btn btn-ghost">
-              กดฟังตอนนี้
-            </a>
+            <a href="#" class="btn btn-ghost">กดฟังตอนนี้</a>
           </article>
 
           <!-- EP 2 -->
@@ -73,13 +95,11 @@
             </h3>
             <div class="episode-meta">ระยะเวลา: ประมาณ 12 นาที</div>
             <p class="card-text">
-  องของตัวเอ  เบื้องหลังความคิดแบบ “เราไม่อยากเป็นภาระใคร”
-              บางทีอาจมีอะไรซ่อนอยู่มากกว่านั้น มาลองค่อย ๆ
-              เปิดดูความเชื่อพวกนี้ไปด้วยกันอย่างอ่อนโยน
+              เบื้องหลังความคิดแบบ “เราไม่อยากเป็นภาระใคร”
+              อาจมีเรื่องราวบางอย่างซ่อนอยู่ มาลองค่อย ๆ
+              เปิดดูความเชื่อเหล่านี้ไปด้วยกันอย่างอ่อนโยน
             </p>
-            <a href="#" class="btn btn-ghost">
-              กดฟังตอนนี้
-            </a>
+            <a href="#" class="btn btn-ghost">กดฟังตอนนี้</a>
           </article>
 
           <!-- EP 3 -->
@@ -92,26 +112,20 @@
               ลองมาฟังเสียงเล็ก ๆ ที่จะเตือนคุณว่าคุณมีคุณค่า
               มากกว่าที่สายตาตัวเองยอมมองเห็น
             </p>
-            <a href="#" class="btn btn-ghost">
-              กดฟังตอนนี้
-            </a>
+            <a href="#" class="btn btn-ghost">กดฟังตอนนี้</a>
           </article>
 
           <!-- EP 4 -->
           <article class="card">
             <div class="card-tag">EP. 04</div>
-            <h3 class="card-title">
-              เมื่อบ้านไม่ใช่ที่ที่รู้สึกปลอดภัยที่สุด
-            </h3>
+            <h3 class="card-title">เมื่อบ้านไม่ใช่ที่ที่รู้สึกปลอดภัยที่สุด</h3>
             <div class="episode-meta">ระยะเวลา: ประมาณ 15 นาที</div>
             <p class="card-text">
-              สำหรับใครที่รู้สึกว่าบ้าน คนใกล้ตัว
-              หรือที่ที่ควรสบายใจที่สุด กลับกลายเป็นที่ที่ทำให้เราเกร็ง
+              สำหรับใครที่รู้สึกว่าบ้าน คนใกล้ตัว หรือที่ที่ควรสบายใจที่สุด
+              กลับกลายเป็นที่ที่ทำให้เราเกร็ง
               เรามาคุยกันว่าเราจะดูแลใจตัวเองยังไง ในความจริงที่ไม่ง่ายนี้
             </p>
-            <a href="#" class="btn btn-ghost">
-              กดฟังตอนนี้
-            </a>
+            <a href="#" class="btn btn-ghost">กดฟังตอนนี้</a>
           </article>
         </div>
       </div>
@@ -120,5 +134,18 @@
 </template>
 
 <script setup>
-// ยังไม่ต้องมี logic อะไร ใช้แค่ layout/เนื้อหา
+import { ref } from "vue";
+
+const showSpotify = ref(false);
+
+const handleSpotifyClick = () => {
+  showSpotify.value = true;
+
+  requestAnimationFrame(() => {
+    const el = document.getElementById("spotify-embed");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+};
 </script>

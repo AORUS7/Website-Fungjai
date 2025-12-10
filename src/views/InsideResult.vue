@@ -1,4 +1,3 @@
-<!-- src/views/InsideResult.vue -->
 <template>
   <div class="page">
     <main>

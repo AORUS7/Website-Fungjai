@@ -13,6 +13,9 @@ import Inside from "./views/Inside.vue";
 import InsideQuestion from "./views/InsideQuestion.vue";
 import InsideResult from "./views/InsideResult.vue";
 
+import InsideArticles from "./views/InsideArticles.vue";
+
+
 const routes = [
   { path: "/", component: Home },
   { path: "/podcast", component: Podcast },
@@ -33,6 +36,11 @@ const routes = [
     path: "/inside-result",
     name: "InsideResult",
     component: () => import("./views/InsideResult.vue"),
+  },
+  {
+    path: "/inside/articles",
+    name: "inside-articles",
+    component: InsideArticles,
   },
 ];
 
