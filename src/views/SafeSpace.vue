@@ -28,9 +28,7 @@ const scrollToBottom = async () => {
   }
 };
 
-/* -------------------------
-   SEND MESSAGE
--------------------------- */
+
 const sendMessage = async () => {
   const text = userInput.value.trim();
   if (!text || isTyping.value) return;
@@ -52,7 +50,6 @@ const sendMessage = async () => {
   await scrollToBottom();
 
   try {
-    // 2. แปลง messages → LLM format
     const llmMessages = [
       {
         role: "system",
@@ -104,9 +101,7 @@ const sendMessage = async () => {
   }
 };
 
-/* -------------------------
-   KEYBOARD
--------------------------- */
+
 const handleKeydown = (e) => {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
@@ -118,7 +113,6 @@ const handleKeydown = (e) => {
 <template>
   <div class="page">
     <main>
-      <!-- HERO -->
       <section class="hero">
         <div class="container hero-inner">
           <div>
@@ -367,5 +361,36 @@ const handleKeydown = (e) => {
   font-size: 0.75rem;
   color: #999;
   margin-top: 0.4rem;
+}
+
+/* MOBILE */
+@media (max-width: 640px) {
+  .chat-window {
+    height: 100vh;
+    max-width: 100%;
+    border-radius: 0;
+    padding: 1rem;
+  }
+
+  .chat-bubble {
+    max-width: 92%;
+    font-size: 0.95rem;
+  }
+
+  .chat-input {
+    font-size: 16px; 
+  }
+}
+
+/* TABLET / iPAD */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .chat-window {
+    max-width: 640px;
+    height: 85vh;
+  }
+
+  .chat-bubble {
+    max-width: 85%;
+  }
 }
 </style>

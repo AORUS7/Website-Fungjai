@@ -1,6 +1,5 @@
 <template>
   <main>
-    <!-- HERO -->
     <section class="hero">
       <div class="container hero-inner">
         <div>
@@ -18,7 +17,6 @@
           </div>
         </div>
 
-        <!-- 🔥 HERO VIDEO POPUP -->
         <div class="hero-visual">
           <a
             class="popup-video podcast-video-card"
@@ -53,7 +51,6 @@
               แต่มาจากหัวใจที่ต้องเข้มแข็งตลอดเวลา
             </p>
 
-            <!-- popup video ต่อ episode ได้ -->
             <a
               class="popup-video btn btn-ghost"
               href="https://embed.mindstamp.com/e/jLPkFJBKGQBd?fullscreen=1"
