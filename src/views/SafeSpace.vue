@@ -1,9 +1,7 @@
 <script setup>
 import { ref, nextTick } from "vue";
 
-/* -------------------------
-   STATE
--------------------------- */
+
 const messages = ref([
   {
     id: 1,
@@ -18,9 +16,7 @@ const userInput = ref("");
 const isTyping = ref(false);
 let idCounter = 2;
 
-/* -------------------------
-   HELPERS
--------------------------- */
+
 const scrollToBottom = async () => {
   await nextTick();
   const box = document.querySelector(".chat-window-body");
