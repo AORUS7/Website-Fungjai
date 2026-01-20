@@ -18,7 +18,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key=${apiKey}`,
+      // ✅ เปลี่ยนตรงนี้
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: {
@@ -55,16 +56,11 @@ ${message}
 
     const data = await response.json();
 
-    // debug ได้ถ้ายังอยากเห็น
-    // console.log("Gemini response:", JSON.stringify(data, null, 2));
-
     const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!reply) {
-      return res.status(500).json({
-        error: "Empty response from Gemini",
-        raw: data,
-      });
+      console.error("Gemini raw response:", data);
+      return res.status(500).json({ error: "Empty response from Gemini" });
     }
 
     return res.status(200).json({ reply });
