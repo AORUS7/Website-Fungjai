@@ -1,34 +1,30 @@
-// api/chat.ts
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-export default async function handler(req: Request) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-    });
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    const body = await req.json();
-    const message = body.message;
+    const { message } = req.body;
 
     if (!message) {
-      return new Response(JSON.stringify({ error: "Message is required" }), {
-        status: 400,
-      });
+      return res.status(400).json({ error: "Message is required" });
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
+
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "Missing GEMINI_API_KEY" }), {
-        status: 500,
-      });
+      return res.status(500).json({ error: "Missing GEMINI_API_KEY" });
     }
 
-    const geminiRes = await fetch(
+    const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           contents: [
             {
@@ -58,18 +54,17 @@ ${message}
       }
     );
 
-    const data = await geminiRes.json();
+    const data = await response.json();
+
     const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!reply) {
-      throw new Error("Empty Gemini response");
+      return res.status(500).json({ error: "Empty response from Gemini" });
     }
 
-    return new Response(JSON.stringify({ reply }), { status: 200 });
+    return res.status(200).json({ reply });
   } catch (err) {
     console.error("API ERROR:", err);
-    return new Response(JSON.stringify({ error: "Internal Server Error" }), {
-      status: 500,
-    });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 }
