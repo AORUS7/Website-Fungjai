@@ -6,10 +6,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // ✅ รองรับทั้ง string และ object
-    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
-
-    const message = body?.message;
+    const { message } = req.body;
 
     if (!message) {
       return res.status(400).json({ error: "Message is required" });
@@ -21,10 +18,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key=${apiKey}`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           contents: [
             {
@@ -40,7 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 ข้อความจากผู้ใช้:
 ${message}
-`.trim(),
+                  `.trim(),
                 },
               ],
             },
@@ -56,16 +55,21 @@ ${message}
 
     const data = await response.json();
 
+    // debug ได้ถ้ายังอยากเห็น
+    // console.log("Gemini response:", JSON.stringify(data, null, 2));
+
     const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!reply) {
-      console.error("Gemini raw response:", data);
-      return res.status(500).json({ error: "Empty response from Gemini" });
+      return res.status(500).json({
+        error: "Empty response from Gemini",
+        raw: data,
+      });
     }
 
     return res.status(200).json({ reply });
-  } catch (err) {
-    console.error("API ERROR:", err);
+  } catch (error) {
+    console.error("API ERROR:", error);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 }
