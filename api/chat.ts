@@ -17,8 +17,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: "Missing GEMINI_API_KEY" });
     }
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`,
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-3-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: {
@@ -27,6 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         body: JSON.stringify({
           contents: [
             {
+              role: "user",
               parts: [
                 {
                   text: `
@@ -43,11 +44,15 @@ ${message}
               ],
             },
           ],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 512,
+          },
         }),
       }
     );
 
-    const data = await geminiRes.json();
+    const data = await response.json();
 
     const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
 
@@ -57,8 +62,8 @@ ${message}
     }
 
     return res.status(200).json({ reply });
-  } catch (err) {
-    console.error("API ERROR:", err);
+  } catch (error) {
+    console.error("API ERROR:", error);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 }
