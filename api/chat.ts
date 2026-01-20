@@ -13,7 +13,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
-
     if (!apiKey) {
       return res.status(500).json({ error: "Missing GEMINI_API_KEY" });
     }
@@ -32,9 +31,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               parts: [
                 {
                   text: `
-คุณคือ “FUNGJAI (ฟังใจ)” แชทบอทผู้รับฟังด้านจิตใจ
+คุณคือ “FUNGJAI (ฟังใจ)” แชทบอทด้านจิตใจ
 - ใช้ภาษาไทย
-- อ่อนโยน ไม่ตัดสิน
+- น้ำเสียงอ่อนโยน ไม่ตัดสิน
 - ไม่ให้คำวินิจฉัยทางการแพทย์
 - เน้นรับฟัง สะท้อนความรู้สึก และชวนเล่า
 
@@ -65,6 +64,6 @@ ${message}
     return res.status(200).json({ reply });
   } catch (err) {
     console.error("API ERROR:", err);
-    return res.status(500).json({ error: "Internal Server Error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 }
