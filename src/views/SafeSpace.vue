@@ -1,6 +1,9 @@
 <script setup>
 import { ref, nextTick } from "vue";
 
+/* -------------------------
+   STATE
+-------------------------- */
 const messages = ref([
   {
     id: 1,
@@ -12,45 +15,91 @@ const messages = ref([
 ]);
 
 const userInput = ref("");
+const isTyping = ref(false);
 let idCounter = 2;
 
+/* -------------------------
+   HELPERS
+-------------------------- */
 const scrollToBottom = async () => {
   await nextTick();
   const box = document.querySelector(".chat-window-body");
   if (box) {
-    box.scrollTop = box.scrollHeight;
+    box.scrollTo({
+      top: box.scrollHeight,
+      behavior: "smooth",
+    });
   }
 };
 
+/* -------------------------
+   SEND MESSAGE
+-------------------------- */
 const sendMessage = async () => {
   const text = userInput.value.trim();
-  if (!text) return;
+  if (!text || isTyping.value) return;
 
+  // แสดงข้อความผู้ใช้
   messages.value.push({
     id: idCounter++,
     from: "user",
     name: "คุณ",
     text,
-    time: "ตอนนี้",
+    time: new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
   });
+
   userInput.value = "";
+  isTyping.value = true;
   await scrollToBottom();
 
-  // จำลองบอทตอบ (เวอร์ชันทดสอบ ยังไม่ได้ต่อ API จริง)
-  setTimeout(async () => {
-    const reply =
-      "ขอบคุณที่เล่าให้ฟังนะคะ สิ่งที่คุณรู้สึกสำคัญมากเลย ❤️\nตอนนี้คุณไม่จำเป็นต้องรีบหาคำตอบก็ได้ แค่ค่อย ๆ เล่าในจังหวะที่คุณสบายใจก็พอค่ะ";
+  try {
+    // 🔥 เรียก Vercel API เท่านั้น
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: text }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.reply) {
+      throw new Error("API error");
+    }
+
+    // แสดงข้อความบอท
     messages.value.push({
       id: idCounter++,
       from: "bot",
       name: "FUNGJAI",
-      text: reply,
+      text: data.reply,
+      time: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    });
+  } catch (err) {
+    console.error("Chat error:", err);
+
+    messages.value.push({
+      id: idCounter++,
+      from: "bot",
+      name: "FUNGJAI",
+      text:
+        "ขอโทษนะคะ ตอนนี้การเชื่อมต่อมีปัญหานิดหน่อย 🫧 แต่ FUNGJAI ยังอยู่ตรงนี้เสมอ ลองพิมพ์ใหม่อีกครั้งได้เลยค่ะ",
       time: "เมื่อสักครู่",
     });
+  } finally {
+    isTyping.value = false;
     await scrollToBottom();
-  }, 700);
+  }
 };
 
+/* -------------------------
+   KEYBOARD
+-------------------------- */
 const handleKeydown = (e) => {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
@@ -62,6 +111,7 @@ const handleKeydown = (e) => {
 <template>
   <div class="page">
     <main>
+      <!-- HERO -->
       <section class="hero">
         <div class="container hero-inner">
           <div>
@@ -69,89 +119,38 @@ const handleKeydown = (e) => {
             <h1 class="hero-title">SAFE SPACE – แชทกับใจของคุณได้ที่นี่</h1>
             <p class="hero-text">
               ถ้าคุณมีเรื่องที่ไม่รู้จะเล่าให้ใครฟัง หรือแค่อยากมีใครสักคนที่รับฟังอย่างไม่ตัดสิน
-              คุณสามารถใช้ห้องแชทนี้เป็นมุมเล็ก ๆ
-              สำหรับระบายและค่อย ๆ ทำความเข้าใจความรู้สึกของตัวเองได้เลยค่ะ
+              ที่นี่คือพื้นที่ที่คุณสามารถเล่าได้อย่างสบายใจ
             </p>
             <div class="hero-actions">
               <a href="#chat" class="btn btn-primary">เริ่มคุยกับ FUNGJAI</a>
             </div>
-            <div class="hero-note">
-              คุณไม่จำเป็นต้องใช้ชื่อจริง ไม่ต้องเรียบเรียงให้สวยงาม
-              แค่เป็นตัวคุณในแบบที่คุณไหวในวันนี้ก็พอแล้ว 🤍
-            </div>
           </div>
 
           <div class="hero-visual">
-            <!-- การ์ดจำลองหน้าจอมือถือ / chatbot profile -->
             <div class="hero-card">
               <div class="hero-chip">
                 <span class="hero-chip-dot"></span>
-                ออนไลน์ · พร้อมรับฟัง
+                ออนไลน์ · AI พร้อมรับฟัง
               </div>
               <p class="hero-quote">
-                “คุณไม่ได้เป็นภาระ เพียงเพราะคุณกำลังรู้สึกบางอย่างอย่างหนักหน่วง
-                การขอให้ใครสักคนฟัง ไม่ได้ทำให้คุณแย่ลงเลยค่ะ”
-                <small>ข้อความเล็ก ๆ จาก SAFE SPACE</small>
+                “คุณไม่ได้เป็นภาระ เพียงเพราะคุณกำลังรู้สึกบางอย่าง”
+                <small>SAFE SPACE</small>
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- กติกา / อธิบาย SAFE SPACE -->
-      <section class="section section--soft">
-        <div class="container">
-          <div class="section-header">
-            <h2 class="section-title">ก่อนเริ่มคุยกัน เราอยากบอกคุณเล็กน้อย</h2>
-            <p class="section-subtitle">
-              เพื่อให้ที่นี่เป็นพื้นที่ปลอดภัยสำหรับคุณ ลองอ่านข้อตกลงเล็ก ๆ
-              ต่อไปนี้ก่อนค่ะ
-            </p>
-          </div>
-
-          <div class="card card-soft">
-            <p>
-              เราอยากให้ SAFE SPACE เป็นที่ที่คุณรู้สึกว่า
-              “พูดความรู้สึกของตัวเองได้ โดยไม่ต้องกลัวว่าจะถูกตัดสิน”
-            </p>
-            <ul class="rules-list">
-              <li>คุณสามารถใช้ชื่อเล่นหรือไม่ระบุชื่อเลยก็ได้</li>
-              <li>ข้อความของคุณจะถูกมองด้วยความเคารพและไม่ตัดสิน</li>
-              <li>
-                ถ้าเรื่องของคุณเกี่ยวกับอันตรายเร่งด่วนต่อชีวิตหรือการทำร้ายตัวเอง
-                โปรดพิจารณาติดต่อผู้เชี่ยวชาญหรือสายด่วนใกล้ตัวควบคู่กันไปด้วย
-              </li>
-              <li>
-                คุณมีสิทธิ์หยุดพิมพ์ออกจากหน้านี้เมื่อไรก็ได้
-                ถ้าเริ่มรู้สึกไม่สบายใจ
-              </li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <!-- CHAT AREA -->
+      <!-- CHAT -->
       <section id="chat" class="section section--highlight">
         <div class="container">
-          <div class="section-header">
-            <h2 class="section-title">ห้องแชท SAFE SPACE</h2>
-            <p class="section-subtitle">
-              แชทนี้เป็นเวอร์ชันทดสอบที่ช่วยให้คุณได้เขียนความรู้สึกออกมา
-              ถ้าอยากต่อยอดให้ตอบแบบ AI จริง ๆ
-              สามารถเชื่อมต่อกับระบบหลังบ้านหรือ OpenAI API ได้ภายหลัง
-            </p>
-          </div>
-
           <div class="chat-layout">
-            <!-- กล่องแชทหลัก -->
             <div class="chat-window card">
               <div class="chat-window-header">
-                <div class="chat-avatar">
-                  <span>FJ</span>
-                </div>
-                <div class="chat-header-text">
-                  <div class="chat-title">FUNGJAI • Safe Space Bot</div>
-                  <div class="chat-subtitle">พร้อมรับฟัง · ไม่ตัดสิน · ตอบอย่างอ่อนโยน</div>
+                <div class="chat-avatar"><span>FJ</span></div>
+                <div>
+                  <div class="chat-title">FUNGJAI • AI Assistant</div>
+                  <div class="chat-subtitle">รับฟัง · ไม่ตัดสิน · อ่อนโยน</div>
                 </div>
               </div>
 
@@ -165,18 +164,24 @@ const handleKeydown = (e) => {
                   <div v-if="m.from === 'bot'" class="chat-avatar chat-avatar-sm">
                     <span>F</span>
                   </div>
+
                   <div class="chat-bubble">
                     <p class="chat-bubble-name">{{ m.name }}</p>
-                    <p class="chat-bubble-text">
-                      <!-- รองรับขึ้นบรรทัดใหม่ -->
-                      <span
-                        v-for="(line, i) in m.text.split('\n')"
-                        :key="i"
-                      >
-                        {{ line }}<br v-if="i < m.text.split('\n').length - 1" />
-                      </span>
-                    </p>
+                    <div class="chat-bubble-text">
+                      <p v-for="(line, i) in m.text.split('\n')" :key="i">
+                        {{ line }}
+                      </p>
+                    </div>
                     <p class="chat-bubble-meta">{{ m.time }}</p>
+                  </div>
+                </div>
+
+                <div v-if="isTyping" class="chat-message-row is-bot">
+                  <div class="chat-avatar chat-avatar-sm"><span>F</span></div>
+                  <div class="chat-bubble typing-indicator">
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
                   </div>
                 </div>
               </div>
@@ -185,33 +190,23 @@ const handleKeydown = (e) => {
                 <textarea
                   v-model="userInput"
                   class="chat-input"
-                  placeholder="อยากเล่าอะไรให้ FUNGJAI ฟังบ้างคะ พิมพ์ได้เต็มที่เลย…"
+                  placeholder="อยากเล่าอะไรให้ FUNGJAI ฟังบ้างคะ..."
                   rows="2"
+                  :disabled="isTyping"
                   @keydown="handleKeydown"
                 ></textarea>
-                <button type="submit" class="btn btn-primary chat-send-btn">
-                  ส่งข้อความ
+
+                <button
+                  type="submit"
+                  class="btn btn-primary chat-send-btn"
+                  :disabled="isTyping || !userInput.trim()"
+                >
+                  {{ isTyping ? "..." : "ส่ง" }}
                 </button>
               </form>
-              <p class="chat-hint">
-                กด <strong>Enter</strong> เพื่อส่งข้อความ · กด <strong>Shift + Enter</strong> เพื่อขึ้นบรรทัดใหม่
-              </p>
-            </div>
 
-            <!-- กล่องคำอธิบายด้านข้าง -->
-            <div class="chat-side card card-soft">
-              <h3 class="card-title">วันนี้คุณอยากให้แชทนี้เป็นยังไง?</h3>
-              <p class="card-text">
-                คุณอาจใช้ที่นี่เพื่อ…
-              </p>
-              <ul class="bullet-list">
-                <li>ระบายเรื่องที่ค้างอยู่ในใจมานาน</li>
-                <li>เขียนสิ่งที่กลัวจะพูดออกมาดัง ๆ กับใครสักคน</li>
-                <li>เล่าเรื่องดี ๆ เล็ก ๆ ที่ทำให้คุณยิ้มในวันนี้</li>
-              </ul>
-              <p class="card-text">
-                ไม่จำเป็นต้องเล่าให้ครบทุกอย่างในครั้งเดียวก็ได้
-                คุณสามารถกลับมาเมื่อไรก็ได้ในจังหวะที่หัวใจคุณไหวค่ะ 🌷
+              <p class="chat-hint">
+                Enter = ส่ง · Shift + Enter = ขึ้นบรรทัดใหม่
               </p>
             </div>
           </div>
@@ -224,164 +219,49 @@ const handleKeydown = (e) => {
 <style scoped>
 .chat-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.8fr) minmax(0, 1.1fr);
-  gap: 1.5rem;
+  grid-template-columns: 1fr;
 }
-
 .chat-window {
   display: flex;
   flex-direction: column;
-  padding: 1.4rem 1.3rem;
+  padding: 1.4rem;
+  min-height: 520px;
 }
-
-.chat-window-header {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid rgba(255, 200, 200, 0.6);
-  padding-bottom: 0.7rem;
-}
-
-.chat-avatar,
-.chat-avatar-sm {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: #ffe0df;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #d05a52;
-}
-
-.chat-avatar {
-  width: 38px;
-  height: 38px;
-}
-
-.chat-avatar-sm {
-  width: 28px;
-  height: 28px;
-  margin-right: 0.45rem;
-}
-
-.chat-header-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-
-.chat-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-}
-
-.chat-subtitle {
-  font-size: 0.8rem;
-  color: var(--color-text-soft);
-}
-
 .chat-window-body {
   flex: 1;
-  min-height: 220px;
-  max-height: 360px;
   overflow-y: auto;
-  padding-right: 0.4rem;
   margin-bottom: 0.8rem;
 }
-
 .chat-message-row {
   display: flex;
-  align-items: flex-start;
   margin-bottom: 0.75rem;
 }
-
 .chat-message-row.is-user {
   justify-content: flex-end;
 }
-
+.chat-bubble {
+  max-width: 85%;
+  padding: 0.7rem 0.8rem;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid #ffd7d0;
+}
 .chat-message-row.is-user .chat-bubble {
   background: #fff4f0;
-  align-items: flex-end;
 }
-
-.chat-message-row.is-user .chat-bubble-name {
-  text-align: right;
-}
-
-.chat-message-row.is-user .chat-bubble-meta {
-  text-align: right;
-}
-
-.chat-bubble {
-  max-width: 100%;
-  padding: 0.65rem 0.75rem;
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: var(--shadow-soft);
-  border: 1px solid rgba(255, 210, 205, 0.8);
-}
-
-.chat-bubble-name {
-  font-size: 0.8rem;
-  font-weight: 600;
-  margin: 0 0 0.18rem;
-}
-
-.chat-bubble-text {
-  font-size: 0.9rem;
-  margin: 0 0 0.18rem;
-  white-space: pre-wrap;
-}
-
-.chat-bubble-meta {
-  font-size: 0.75rem;
-  color: var(--color-text-soft);
-  margin: 0;
-}
-
-.chat-input-row {
+.typing-indicator {
   display: flex;
-  gap: 0.7rem;
-  align-items: flex-end;
-  margin-top: 0.3rem;
+  gap: 4px;
 }
-
-.chat-input {
-  flex: 1;
-  resize: none;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 200, 200, 0.9);
-  padding: 0.55rem 0.7rem;
-  font-family: inherit;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  outline: none;
+.dot {
+  width: 6px;
+  height: 6px;
+  background: #d05a52;
+  border-radius: 50%;
+  animation: bounce 1.4s infinite;
 }
-
-.chat-input:focus {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 1px rgba(255, 138, 128, 0.4);
-}
-
-.chat-send-btn {
-  flex-shrink: 0;
-}
-
-.chat-hint {
-  font-size: 0.75rem;
-  color: var(--color-text-soft);
-  margin-top: 0.4rem;
-}
-
-.chat-side {
-  align-self: flex-start;
-}
-
-@media (max-width: 900px) {
-  .chat-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
+@keyframes bounce {
+  0%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-6px); }
 }
 </style>
