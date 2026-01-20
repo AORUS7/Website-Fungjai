@@ -17,8 +17,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: "Missing GEMINI_API_KEY" });
     }
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: {
@@ -27,7 +27,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         body: JSON.stringify({
           contents: [
             {
-              role: "user",
               parts: [
                 {
                   text: `
@@ -44,21 +43,17 @@ ${message}
               ],
             },
           ],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 512,
-          },
         }),
       }
     );
 
-    const data = await response.json();
+    const data = await geminiRes.json();
 
-    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
 
     if (!reply) {
       console.error("Gemini raw response:", data);
-      return res.status(500).json({ error: "Empty response from Gemini" });
+      return res.status(500).json({ error: "Empty Gemini response" });
     }
 
     return res.status(200).json({ reply });
