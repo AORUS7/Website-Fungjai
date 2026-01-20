@@ -12,7 +12,9 @@
     "jquery": "^3.7.1",
     "magnific-popup": "^1.2.0",
     "vue": "^3.5.24",
-    "vue-router": "^4.6.3"
+    "vue-router": "^4.6.3",
+    "@vercel/node": "^3.0.0"
+
   },
   "devDependencies": {
     "@vercel/node": "^5.5.24",

@@ -35,6 +35,7 @@ const sendMessage = async () => {
   const text = userInput.value.trim();
   if (!text || isTyping.value) return;
 
+  // 1. push ข้อความ user
   messages.value.push({
     id: idCounter++,
     from: "user",
@@ -51,10 +52,25 @@ const sendMessage = async () => {
   await scrollToBottom();
 
   try {
+    // 2. แปลง messages → LLM format
+    const llmMessages = [
+      {
+        role: "system",
+        content:
+          "คุณคือ FUNGJAI พื้นที่ปลอดภัย รับฟังอย่างอ่อนโยน ไม่ตัดสิน ไม่ให้คำสั่ง ไม่ด่วนสรุป",
+      },
+      ...messages.value.map((m) => ({
+        role: m.from === "user" ? "user" : "assistant",
+        content: m.text,
+      })),
+    ];
+
     const response = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: text }),
+      body: JSON.stringify({
+        messages: llmMessages,
+      }),
     });
 
     const data = await response.json();

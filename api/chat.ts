@@ -6,60 +6,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { message } = req.body;
-    if (!message) {
-      return res.status(400).json({ error: "Message is required" });
+    const { messages } = req.body;
+
+    if (!messages || !Array.isArray(messages)) {
+      return res.status(400).json({
+        error: "messages is required and must be an array",
+      });
     }
 
-    const HF_API_KEY = process.env.HF_API_KEY;
-    if (!HF_API_KEY) {
-      return res.status(500).json({ error: "Missing HF_API_KEY" });
-    }
-
-    const response = await fetch(
+    const hfRes = await fetch(
       "https://router.huggingface.co/v1/chat/completions",
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${HF_API_KEY}`,
+          Authorization: `Bearer ${process.env.HF_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "HuggingFaceH4/zephyr-7b-beta",
-          messages: [
-            {
-              role: "system",
-              content: `
-คุณคือ “FUNGJAI (ฟังใจ)” แชทบอทด้านการรับฟังทางใจ
-- ใช้ภาษาไทย
-- อ่อนโยน ไม่ตัดสิน
-- ไม่วินิจฉัยทางการแพทย์
-- เน้นรับฟัง สะท้อนความรู้สึก และชวนเล่า
-              `.trim(),
-            },
-            {
-              role: "user",
-              content: message,
-            },
-          ],
+          model: "meta-llama/Llama-3.1-8B-Instruct",
+          messages,
           temperature: 0.7,
-          max_tokens: 300,
+          max_tokens: 512,
         }),
       }
     );
 
-    const data = await response.json();
+    const data = await hfRes.json();
 
-    const reply = data?.choices?.[0]?.message?.content;
-
-    if (!reply) {
-      console.error("HF RAW:", data);
-      return res.status(500).json({ error: "Empty HF response" });
+    if (!hfRes.ok) {
+      console.error("HF ERROR:", data);
+      return res.status(500).json(data);
     }
 
-    return res.status(200).json({ reply });
-  } catch (err) {
-    console.error("API ERROR:", err);
-    return res.status(500).json({ error: "Internal Server Error" });
+    return res.status(200).json({
+      reply: data.choices[0].message.content,
+    });
+  } catch (err: any) {
+    console.error(err);
+    return res.status(500).json({
+      error: err.message || "Internal Server Error",
+    });
   }
 }
