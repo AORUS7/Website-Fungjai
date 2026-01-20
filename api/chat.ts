@@ -11,54 +11,64 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "Message is required" });
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({ error: "Missing OPENAI_API_KEY" });
+    const hfKey = process.env.HF_API_KEY;
+    if (!hfKey) {
+      return res.status(500).json({ error: "Missing HF_API_KEY" });
     }
 
-    const openaiRes = await fetch(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            {
-              role: "system",
-              content: `
+    const prompt = `
 คุณคือ “FUNGJAI (ฟังใจ)” แชทบอทด้านการรับฟังทางใจ
 - ใช้ภาษาไทย
 - อ่อนโยน ไม่ตัดสิน
 - ไม่วินิจฉัยทางการแพทย์
 - เน้นรับฟัง สะท้อนความรู้สึก และชวนเล่า
-            `.trim(),
-            },
-            {
-              role: "user",
-              content: message,
-            },
-          ],
-          temperature: 0.7,
+
+ผู้ใช้พูดว่า:
+${message}
+
+FUNGJAI ตอบอย่างอ่อนโยน:
+`.trim();
+
+    const response = await fetch(
+      "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${hfKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          inputs: prompt,
+          parameters: {
+            max_new_tokens: 300,
+            temperature: 0.7,
+            top_p: 0.9,
+            return_full_text: false,
+          },
         }),
       }
     );
 
-    const data = await openaiRes.json();
+    const data = await response.json();
 
-    const reply = data?.choices?.[0]?.message?.content;
+    // 🔍 LOG เพื่อเช็คให้ชัวร์
+    console.log("HF RAW:", JSON.stringify(data));
+
+    const reply =
+      Array.isArray(data) && data[0]?.generated_text
+        ? data[0].generated_text.trim()
+        : null;
 
     if (!reply) {
-      console.error("OpenAI raw response:", data);
-      return res.status(500).json({ error: "Empty OpenAI response" });
+      return res.status(500).json({
+        error: "Empty response from Hugging Face",
+        raw: data,
+      });
     }
 
     return res.status(200).json({ reply });
   } catch (err) {
-    console.error("API ERROR:", err);
+    console.error("HF API ERROR:", err);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 }
