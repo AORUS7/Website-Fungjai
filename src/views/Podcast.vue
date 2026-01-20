@@ -1,5 +1,6 @@
 <template>
   <main>
+    <!-- HERO -->
     <section class="hero">
       <div class="container hero-inner">
         <div>
@@ -7,58 +8,28 @@
           <h1 class="hero-title">พอดแคสต์ที่อยากนั่งคุยกับใจคุณ</h1>
           <p class="hero-text">
             รวมตอนสั้น ๆ ที่พูดถึงเรื่องความรู้สึก ความสัมพันธ์
-            วันที่ไม่ง่ายเท่าไหร่ และมุมมองเล็ก ๆ ที่อาจช่วยให้คุณหายใจได้
-            โล่งขึ้นอีกนิด
+            และวันที่ไม่ง่ายเท่าไหร่
           </p>
+
           <div class="hero-actions">
-            <a href="#episodes" class="btn btn-primary">เลือกตอนที่อยากฟัง</a>
-
-            <button type="button" class="btn btn-ghost" @click="handleSpotifyClick">
-              ฟังบน Spotify
-            </button>
+            <a href="#episodes" class="btn btn-primary">
+              เลือกตอนที่อยากฟัง
+            </a>
           </div>
         </div>
 
+        <!-- 🔥 HERO VIDEO POPUP -->
         <div class="hero-visual">
-          <div class="hero-card">
-            <div class="hero-chip">
-              <span class="hero-chip-dot"></span>
-              กดเล่นเมื่อไรก็ได้ที่ใจอยากพัก
-            </div>
-            <p class="hero-quote">
-              “บางครั้งแค่ได้ฟังใครสักคนพูดแทนสิ่งที่เราไม่กล้าพูด
-              ก็ทำให้รู้สึกไม่โดดเดี่ยวแล้ว”
-              <small>EP. 00 – Intro to FUNGJAI Podcast</small>
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section
-      v-if="showSpotify"
-      id="spotify-embed"
-      class="section"
-    >
-      <div class="container">
-        <div class="section-header">
-          <h2 class="section-title">ฟังบน Spotify ได้จากตรงนี้เลย</h2>
-          <p class="section-subtitle">
-            ถ้าสะดวกฟังบน Spotify อยู่แล้ว สามารถกดเล่นจากด้านล่างนี้ได้เลย
-            หรือกดเปิดในแอป/เว็บ Spotify เต็ม ๆได้เลย
-          </p>
-        </div>
-
-        <div class="card card-soft">
-          <iframe
-            style="border-radius: 12px"
-            src="https://open.spotify.com/embed/episode/4hlNCAUQpIK1BJtZKDDeeR?utm_source=generator"
-            width="100%"
-            height="232"
-            frameborder="0"
-            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-            loading="lazy"
-          ></iframe>
+          <a
+            class="popup-video podcast-video-card"
+            href="https://embed.mindstamp.com/e/jLPkFJBKGQBd?fullscreen=1"
+          >
+            <img
+              src="https://mindstamp-pub.s3.us-west-1.amazonaws.com/users/85fe6885-124e-4414-b8fd-9e4fb611bead/images/1767386688-deab93ff-105e-4d20-87b0-626901f58da1-thumbnail.jpg"
+              alt="Play Podcast"
+            />
+            <div class="play-overlay">▶</div>
+          </a>
         </div>
       </div>
     </section>
@@ -69,63 +40,26 @@
         <div class="section-header">
           <h2 class="section-title">ตอนต่าง ๆ ใน Podcast</h2>
           <p class="section-subtitle">
-            เลือกตอนที่ตรงกับความรู้สึกของคุณในตอนนี้มากที่สุด
+            เลือกตอนที่ตรงกับความรู้สึกของคุณในตอนนี้
           </p>
         </div>
 
         <div class="grid-2">
-          <!-- EP 1 -->
           <article class="card">
             <div class="card-tag">EP. 01</div>
             <h3 class="card-title">เมื่อเราเหนื่อยแต่ไม่รู้จะพักยังไง</h3>
-            <div class="episode-meta">ระยะเวลา: ประมาณ 10–15 นาที</div>
             <p class="card-text">
-              ตอนนี้ชวนคุณสำรวจความเหนื่อยที่ไม่ได้มาจากงานอย่างเดียว
-              แต่จากหัวใจที่ต้องพยายามเข้มแข็งตลอดเวลา และวิธีเล็ก ๆ
-              ที่จะเริ่มอนุญาตให้ตัวเองได้พักจริง ๆ สักที
+              สำรวจความเหนื่อยที่ไม่ได้มาจากงาน
+              แต่มาจากหัวใจที่ต้องเข้มแข็งตลอดเวลา
             </p>
-            <a href="#" class="btn btn-ghost">กดฟังตอนนี้</a>
-          </article>
 
-          <!-- EP 2 -->
-          <article class="card">
-            <div class="card-tag">EP. 02</div>
-            <h3 class="card-title">
-              ทำไมเราถึงกลัวการเล่าเรื่องของตัวเองให้ใครฟัง
-            </h3>
-            <div class="episode-meta">ระยะเวลา: ประมาณ 12 นาที</div>
-            <p class="card-text">
-              เบื้องหลังความคิดแบบ “เราไม่อยากเป็นภาระใคร”
-              อาจมีเรื่องราวบางอย่างซ่อนอยู่ มาลองค่อย ๆ
-              เปิดดูความเชื่อเหล่านี้ไปด้วยกันอย่างอ่อนโยน
-            </p>
-            <a href="#" class="btn btn-ghost">กดฟังตอนนี้</a>
-          </article>
-
-          <!-- EP 3 -->
-          <article class="card">
-            <div class="card-tag">EP. 03</div>
-            <h3 class="card-title">วันที่รู้สึกว่าตัวเองไม่เก่งพอ</h3>
-            <div class="episode-meta">ระยะเวลา: ประมาณ 8–10 นาที</div>
-            <p class="card-text">
-              สำหรับวันที่คุณเปรียบเทียบตัวเองกับคนอื่นแล้วรู้สึกแพ้ไปหมด
-              ลองมาฟังเสียงเล็ก ๆ ที่จะเตือนคุณว่าคุณมีคุณค่า
-              มากกว่าที่สายตาตัวเองยอมมองเห็น
-            </p>
-            <a href="#" class="btn btn-ghost">กดฟังตอนนี้</a>
-          </article>
-
-          <!-- EP 4 -->
-          <article class="card">
-            <div class="card-tag">EP. 04</div>
-            <h3 class="card-title">เมื่อบ้านไม่ใช่ที่ที่รู้สึกปลอดภัยที่สุด</h3>
-            <div class="episode-meta">ระยะเวลา: ประมาณ 15 นาที</div>
-            <p class="card-text">
-              สำหรับใครที่รู้สึกว่าบ้าน คนใกล้ตัว หรือที่ที่ควรสบายใจที่สุด
-              กลับกลายเป็นที่ที่ทำให้เราเกร็ง
-              เรามาคุยกันว่าเราจะดูแลใจตัวเองยังไง ในความจริงที่ไม่ง่ายนี้
-            </p>
-            <a href="#" class="btn btn-ghost">กดฟังตอนนี้</a>
+            <!-- popup video ต่อ episode ได้ -->
+            <a
+              class="popup-video btn btn-ghost"
+              href="https://embed.mindstamp.com/e/jLPkFJBKGQBd?fullscreen=1"
+            >
+              กดฟังตอนนี้
+            </a>
           </article>
         </div>
       </div>
@@ -134,18 +68,75 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { onMounted } from "vue";
+import $ from "jquery";
+import "magnific-popup";
+import "magnific-popup/dist/magnific-popup.css";
 
-const showSpotify = ref(false);
+onMounted(() => {
+  $(".popup-video").magnificPopup({
+    type: "iframe",
+    mainClass: "mfp-fade",
+    preloader: true,
+    callbacks: {
+      markupParse(template) {
+        setTimeout(() => {
+          const iframe = template.find("iframe");
+          if (iframe.length) {
+            iframe.attr("allowfullscreen", "");
+            iframe.attr(
+              "allow",
+              "encrypted-media; microphone; camera; geolocation"
+            );
+            iframe.attr("scrolling", "no");
+            iframe.attr(
+              "referrerpolicy",
+              "no-referrer-when-downgrade"
+            );
+          }
+        }, 50);
+      },
+    },
+  });
 
-const handleSpotifyClick = () => {
-  showSpotify.value = true;
-
-  requestAnimationFrame(() => {
-    const el = document.getElementById("spotify-embed");
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
+  // รองรับ redirect จาก iframe (Mindstamp)
+  window.addEventListener("message", (event) => {
+    if (event.data?.event === "redirect") {
+      window.location.href = event.data.info.data.link;
     }
   });
-};
+});
 </script>
+
+<style scoped>
+/* HERO VIDEO */
+.podcast-video-card {
+  position: relative;
+  display: block;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+}
+
+.podcast-video-card img {
+  width: 100%;
+  max-width: 420px;
+  display: block;
+}
+
+.play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.35);
+  transition: background 0.2s ease;
+}
+
+.podcast-video-card:hover .play-overlay {
+  background: rgba(0, 0, 0, 0.5);
+}
+</style>
