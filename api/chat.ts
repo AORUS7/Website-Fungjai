@@ -18,8 +18,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const response = await fetch(
-      // ✅ เปลี่ยนตรงนี้
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: {
@@ -47,7 +46,6 @@ ${message}
           ],
           generationConfig: {
             temperature: 0.7,
-            topP: 0.95,
             maxOutputTokens: 512,
           },
         }),
@@ -64,8 +62,8 @@ ${message}
     }
 
     return res.status(200).json({ reply });
-  } catch (error) {
-    console.error("API ERROR:", error);
+  } catch (err) {
+    console.error("API ERROR:", err);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 }
