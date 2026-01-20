@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // อนุญาตเฉพาะ POST
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -31,9 +32,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               parts: [
                 {
                   text: `
-คุณคือ “FUNGJAI (ฟังใจ)” แชทบอทด้านจิตใจ
+คุณคือ “FUNGJAI (ฟังใจ)” แชทบอทผู้รับฟังด้านจิตใจ
 - ใช้ภาษาไทย
-- น้ำเสียงอ่อนโยน ไม่ตัดสิน
+- อ่อนโยน ไม่ตัดสิน
 - ไม่ให้คำวินิจฉัยทางการแพทย์
 - เน้นรับฟัง สะท้อนความรู้สึก และชวนเล่า
 
@@ -62,8 +63,8 @@ ${message}
     }
 
     return res.status(200).json({ reply });
-  } catch (err) {
-    console.error("API ERROR:", err);
-    return res.status(500).json({ error: "Internal server error" });
+  } catch (error) {
+    console.error("API ERROR:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 }
