@@ -11,45 +11,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "Message is required" });
     }
 
-    const HF_TOKEN = process.env.HF_API_TOKEN;
-    if (!HF_TOKEN) {
-      return res.status(500).json({ error: "Missing HF_API_TOKEN" });
+    const token = process.env.HF_API_KEY;
+    if (!token) {
+      return res.status(500).json({ error: "Missing HF_API_KEY" });
     }
 
     const response = await fetch(
-      "https://router.huggingface.co/hf-inference/models/HuggingFaceH4/zephyr-7b-beta",
+      "https://router.huggingface.co/v1/chat/completions",
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${HF_TOKEN}`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          inputs: `
+          model: "mistralai/Mistral-7B-Instruct-v0.2",
+          messages: [
+            {
+              role: "system",
+              content: `
 คุณคือ “FUNGJAI (ฟังใจ)” แชทบอทด้านการรับฟังทางใจ
 - ใช้ภาษาไทย
 - อ่อนโยน ไม่ตัดสิน
 - ไม่วินิจฉัยทางการแพทย์
 - เน้นรับฟัง สะท้อนความรู้สึก และชวนเล่า
-
-ข้อความจากผู้ใช้:
-${message}
-          `.trim(),
-          parameters: {
-            temperature: 0.7,
-            max_new_tokens: 300,
-          },
+              `.trim(),
+            },
+            {
+              role: "user",
+              content: message,
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 300,
         }),
       }
     );
 
     const data = await response.json();
 
-    // HF จะตอบมาเป็น array
-    const reply =
-      Array.isArray(data) && data[0]?.generated_text
-        ? data[0].generated_text
-        : null;
+    const reply = data?.choices?.[0]?.message?.content ?? null;
 
     if (!reply) {
       console.error("HF RAW:", data);
