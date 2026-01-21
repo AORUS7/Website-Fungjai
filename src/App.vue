@@ -35,7 +35,7 @@ const onTouchEnd = () => {
     router.push(routes[index - 1]);
   }
 };
-</script>
+</script>ป
 
 <template>
   <div class="page">
@@ -162,10 +162,10 @@ const onTouchEnd = () => {
 }
 
 .brand-mark {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  width: 38px;
+  height: 38px;
   background: linear-gradient(135deg, #ff9a8b, #ff6a88);
+  border-radius: 60% 40% 55% 45% / 55% 60% 40% 45%;
 }
 
 .brand-text-main {
