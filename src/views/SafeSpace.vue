@@ -79,8 +79,7 @@ const sendMessage = async () => {
       id: idCounter++,
       from: "bot",
       name: "FUNGJAI",
-      text:
-        "ขอโทษนะคะ เหมือนการเชื่อมต่อจะสะดุดนิดหน่อย\nแต่เรายังอยู่ตรงนี้นะคะ 🤍",
+      text: "ขอโทษนะคะ เหมือนการเชื่อมต่อจะสะดุดนิดหน่อย\nแต่เรายังอยู่ตรงนี้นะคะ 🤍",
       time: "เมื่อสักครู่",
     });
   } finally {
@@ -115,7 +114,12 @@ const handleKeydown = (e) => {
 
       <section class="section section--highlight">
         <div class="container chat-layout">
-          <div class="chat-window">
+          <div
+            class="chat-window"
+            @touchstart.stop
+            @touchmove.stop
+            @touchend.stop
+          >
             <!-- Header -->
             <div class="chat-window-header">
               <div class="chat-avatar">FJ</div>
@@ -125,7 +129,12 @@ const handleKeydown = (e) => {
               </div>
             </div>
 
-            <div class="chat-window-body">
+            <div
+              class="chat-window-body"
+              @touchstart.stop
+              @touchmove.stop
+              @touchend.stop
+            >
               <div
                 v-for="m in messages"
                 :key="m.id"
@@ -165,6 +174,9 @@ const handleKeydown = (e) => {
                 rows="2"
                 :disabled="isTyping"
                 @keydown="handleKeydown"
+                @touchstart.stop
+                @touchmove.stop
+                @touchend.stop
               />
               <button
                 type="submit"
@@ -200,6 +212,7 @@ const handleKeydown = (e) => {
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
+  touch-action: manipulation;
 }
 
 .chat-window-header {
