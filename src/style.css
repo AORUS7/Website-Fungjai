@@ -167,6 +167,10 @@ p {
   max-width: 360px;
 }
 
+.hero {
+  padding-top: 2.5rem;
+}
+
 .hero-chip {
   display: inline-flex;
   align-items: center;
