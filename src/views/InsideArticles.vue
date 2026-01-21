@@ -1,37 +1,46 @@
 <template>
-  <div class="page">
-    <main>
-      <section class="section section--soft">
-        <div class="container">
-          <div class="inside-back">
-            <RouterLink to="/inside" class="back-link">
-              ← Back
-            </RouterLink>
-          </div>
+  <main class="inside-articles">
+    <section class="section section--soft">
+      <div class="container">
+        <RouterLink to="/inside" class="back-link">
+          ← กลับไปหน้า Inside
+        </RouterLink>
 
-          <div class="section-header">
-            <h1 class="section-title">บทความจากโลกข้างใน</h1>
-            <p class="section-subtitle">
-              รวมเรื่องเล็ก ๆ จากความรู้สึกที่หลายคนอาจกำลังเผชิญอยู่เหมือนกัน
-              อ่านช้า ๆ ในจังหวะของคุณเอง
+        <header class="articles-header">
+          <span class="hero-highlight">โลกข้างในตัวเรา</span>
+          <h1 class="articles-title">บทความจากโลกข้างใน</h1>
+          <p class="articles-subtitle">
+            รวมเรื่องเล็ก ๆ จากความรู้สึกที่หลายคนอาจกำลังเผชิญอยู่เหมือนกัน  
+            อ่านช้า ๆ ในจังหวะของคุณเอง
+          </p>
+        </header>
+
+        <div class="articles-list">
+          <article
+            v-for="article in articles"
+            :key="article.id"
+            class="article-card"
+          >
+            <span v-if="article.tag" class="article-tag">
+              {{ article.tag }}
+            </span>
+
+            <h3 class="article-title">
+              {{ article.title }}
+            </h3>
+
+            <p class="article-summary">
+              {{ article.summary }}
             </p>
-          </div>
 
-          <div class="grid-2">
-            <article
-              v-for="article in articles"
-              :key="article.id"
-              class="card"
-            >
-              <p v-if="article.tag" class="card-tag">{{ article.tag }}</p>
-              <h3 class="card-title">{{ article.title }}</h3>
-              <p class="card-text">{{ article.summary }}</p>
-            </article>
-          </div>
+            <span class="article-read">
+              อ่านต่อ →
+            </span>
+          </article>
         </div>
-      </section>
-    </main>
-  </div>
+      </div>
+    </section>
+  </main>
 </template>
 
 <script setup>
@@ -84,22 +93,83 @@ const articles = [
 </script>
 
 <style scoped>
-/* back button */
-.inside-back {
-  margin-bottom: 1.2rem;
-}
-
 .back-link {
-  font-size: 0.9rem;
+  display: inline-block;
+  margin-bottom: 1.2rem;
+  font-size: 0.85rem;
   color: var(--color-text-soft);
   text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  transition: color 0.2s ease;
 }
 
 .back-link:hover {
   color: var(--color-accent);
+}
+
+.articles-header {
+  margin-bottom: 2rem;
+}
+
+.articles-title {
+  font-size: 1.8rem;
+  margin: 0.3rem 0 0.5rem;
+}
+
+.articles-subtitle {
+  font-size: 0.95rem;
+  color: var(--color-text-soft);
+}
+
+.articles-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.2rem;
+}
+
+.article-card {
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 1.5rem 1.4rem;
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgba(255, 220, 210, 0.6);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.article-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(255, 138, 128, 0.18);
+}
+
+.article-tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  color: var(--color-accent);
+  background: rgba(255, 138, 128, 0.12);
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  margin-bottom: 0.4rem;
+}
+
+.article-title {
+  font-size: 1.1rem;
+  margin: 0.2rem 0 0.4rem;
+}
+
+.article-summary {
+  font-size: 0.9rem;
+  color: var(--color-text-soft);
+  line-height: 1.6;
+}
+
+.article-read {
+  display: inline-block;
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--color-accent);
+}
+
+@media (min-width: 768px) {
+  .articles-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 </style>

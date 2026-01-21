@@ -1,13 +1,17 @@
 <template>
-  <main>
+  <main class="podcast-page">
     <section class="hero">
       <div class="container hero-inner">
-        <div>
-          <div class="hero-highlight">พอดแคสต์สำหรับหัวใจที่กำลังคิดเยอะ</div>
-          <h1 class="hero-title">พอดแคสต์ที่อยากนั่งคุยกับใจคุณ</h1>
+        <div class="hero-content">
+          <span class="hero-highlight">พอดแคสต์สำหรับหัวใจที่กำลังคิดเยอะ</span>
+
+          <h1 class="hero-title">
+            พอดแคสต์ที่อยากนั่งคุยกับใจคุณ
+          </h1>
+
           <p class="hero-text">
             รวมตอนสั้น ๆ ที่พูดถึงเรื่องความรู้สึก ความสัมพันธ์
-            และวันที่ไม่ง่ายเท่าไหร่
+            และวันที่ไม่ง่ายเท่าไหร่ ฟังได้แบบไม่ต้องพยายามเข้มแข็ง
           </p>
 
           <div class="hero-actions">
@@ -32,7 +36,6 @@
       </div>
     </section>
 
-    <!-- EPISODES -->
     <section id="episodes" class="section section--soft">
       <div class="container">
         <div class="section-header">
@@ -43,9 +46,11 @@
         </div>
 
         <div class="grid-2">
-          <article class="card">
+          <article class="card episode-card">
             <div class="card-tag">EP. 01</div>
-            <h3 class="card-title">เมื่อเราเหนื่อยแต่ไม่รู้จะพักยังไง</h3>
+            <h3 class="card-title">
+              เมื่อเราเหนื่อยแต่ไม่รู้จะพักยังไง
+            </h3>
             <p class="card-text">
               สำรวจความเหนื่อยที่ไม่ได้มาจากงาน
               แต่มาจากหัวใจที่ต้องเข้มแข็งตลอดเวลา
@@ -75,28 +80,8 @@ onMounted(() => {
     type: "iframe",
     mainClass: "mfp-fade",
     preloader: true,
-    callbacks: {
-      markupParse(template) {
-        setTimeout(() => {
-          const iframe = template.find("iframe");
-          if (iframe.length) {
-            iframe.attr("allowfullscreen", "");
-            iframe.attr(
-              "allow",
-              "encrypted-media; microphone; camera; geolocation"
-            );
-            iframe.attr("scrolling", "no");
-            iframe.attr(
-              "referrerpolicy",
-              "no-referrer-when-downgrade"
-            );
-          }
-        }, 50);
-      },
-    },
   });
 
-  // รองรับ redirect จาก iframe (Mindstamp)
   window.addEventListener("message", (event) => {
     if (event.data?.event === "redirect") {
       window.location.href = event.data.info.data.link;
@@ -106,18 +91,66 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* HERO VIDEO */
+.podcast-page {
+  overflow-x: hidden;
+}
+
+.hero {
+  padding: 3rem 0 2.5rem;
+}
+
+.hero-inner {
+  display: grid;
+  gap: 2rem;
+}
+
+.hero-content {
+  max-width: 520px;
+}
+
+.hero-highlight {
+  display: inline-block;
+  margin-bottom: 0.5rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(255, 138, 128, 0.12);
+  color: var(--color-accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.hero-title {
+  font-size: 1.8rem;
+  margin: 0 0 0.6rem;
+}
+
+.hero-text {
+  font-size: 0.95rem;
+  color: var(--color-text-soft);
+  margin-bottom: 1.2rem;
+}
+
+.hero-actions {
+  margin-bottom: 1.6rem;
+}
+
+.hero-visual {
+  display: flex;
+  justify-content: center;
+}
+
 .podcast-video-card {
   position: relative;
-  display: block;
-  border-radius: 20px;
+  width: 100%;
+  max-width: 420px;
+  border-radius: 24px;
   overflow: hidden;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
 }
 
 .podcast-video-card img {
   width: 100%;
-  max-width: 420px;
   display: block;
 }
 
@@ -127,13 +160,37 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 4rem;
-  color: #ffffff;
+  font-size: 3.5rem;
+  color: #fff;
   background: rgba(0, 0, 0, 0.35);
-  transition: background 0.2s ease;
+  transition: background 0.25s ease;
 }
 
 .podcast-video-card:hover .play-overlay {
   background: rgba(0, 0, 0, 0.5);
+}
+
+.episode-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.episode-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.08);
+}
+
+@media (min-width: 768px) {
+  .hero-inner {
+    grid-template-columns: 1.2fr 1fr;
+    align-items: center;
+  }
+
+  .hero-title {
+    font-size: 2.1rem;
+  }
+
+  .hero-actions {
+    margin-bottom: 0;
+  }
 }
 </style>
