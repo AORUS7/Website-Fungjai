@@ -6,29 +6,32 @@ const messages = ref([
     id: 1,
     from: "bot",
     name: "FUNGJAI",
-    text: "สวัสดีค่ะ 🤍 ขอบคุณที่เข้ามาใน SAFE SPACE วันนี้นะคะ\nถ้าอยากเล่าอะไร เราพร้อมฟังเสมอค่ะ",
+    text: "สวัสดีค่ะ 🤍\nขอบคุณที่เข้ามาใน SAFE SPACE วันนี้นะคะ\nถ้าอยากเล่าอะไร เราพร้อมฟังเสมอค่ะ",
     time: "ตอนนี้",
   },
 ]);
 
 const userInput = ref("");
 const isTyping = ref(false);
-let id = 2;
+let idCounter = 2;
 
 const scrollToBottom = async () => {
   await nextTick();
-  const el = document.querySelector(".chat-body");
-  if (el) el.scrollTop = el.scrollHeight;
+  const box = document.querySelector(".chat-window-body");
+  if (box) {
+    box.scrollTop = box.scrollHeight;
+  }
 };
 
 const sendMessage = async () => {
-  if (!userInput.value.trim() || isTyping.value) return;
+  const text = userInput.value.trim();
+  if (!text || isTyping.value) return;
 
   messages.value.push({
-    id: id++,
+    id: idCounter++,
     from: "user",
     name: "คุณ",
-    text: userInput.value,
+    text,
     time: new Date().toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
@@ -39,17 +42,51 @@ const sendMessage = async () => {
   isTyping.value = true;
   await scrollToBottom();
 
-  setTimeout(() => {
+  try {
+    const llmMessages = [
+      {
+        role: "system",
+        content:
+          "คุณคือ FUNGJAI พื้นที่ปลอดภัย รับฟังอย่างอ่อนโยน ไม่ตัดสิน ไม่ให้คำสั่ง",
+      },
+      ...messages.value.map((m) => ({
+        role: m.from === "user" ? "user" : "assistant",
+        content: m.text,
+      })),
+    ];
+
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: llmMessages }),
+    });
+
+    const data = await response.json();
+    if (!response.ok || !data.reply) throw new Error();
+
     messages.value.push({
-      id: id++,
+      id: idCounter++,
       from: "bot",
       name: "FUNGJAI",
-      text: "ขอบคุณที่เล่าให้ฟังนะคะ 🤍\nอยากเล่าต่อไหม เราอยู่ตรงนี้ค่ะ",
+      text: data.reply,
+      time: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    });
+  } catch {
+    messages.value.push({
+      id: idCounter++,
+      from: "bot",
+      name: "FUNGJAI",
+      text:
+        "ขอโทษนะคะ เหมือนการเชื่อมต่อจะสะดุดนิดหน่อย\nแต่เรายังอยู่ตรงนี้นะคะ 🤍",
       time: "เมื่อสักครู่",
     });
+  } finally {
     isTyping.value = false;
-    scrollToBottom();
-  }, 1200);
+    await scrollToBottom();
+  }
 };
 
 const handleKeydown = (e) => {
@@ -61,87 +98,87 @@ const handleKeydown = (e) => {
 </script>
 
 <template>
-  <div class="page safe-page">
+  <div class="page">
     <main>
-      <section class="hero safe-hero">
+      <section class="hero">
         <div class="container hero-inner">
           <div>
             <div class="hero-highlight">พื้นที่ปลอดภัย</div>
             <h1 class="hero-title">SAFE SPACE</h1>
             <p class="hero-text">
-              คุณไม่จำเป็นต้องเข้มแข็ง แค่เป็นตัวเองก็พอ 🤍
+              คุณไม่จำเป็นต้องเข้มแข็งตลอดเวลา<br />
+              แค่เป็นตัวเองก็พอ 🤍
             </p>
-          </div>
-
-          <div class="hero-visual">
-            <div class="hero-card">
-              <div class="hero-chip">
-                <span class="hero-chip-dot"></span>
-                ออนไลน์ · พร้อมรับฟัง
-              </div>
-              <p class="hero-quote">
-                “คุณไม่ได้เป็นภาระ เพียงเพราะคุณกำลังรู้สึก”
-              </p>
-            </div>
           </div>
         </div>
       </section>
 
-      <section class="safe-chat">
-        <div class="chat-window">
-          <div class="chat-header">
-            <div class="chat-avatar">FJ</div>
-            <div>
-              <div class="chat-title">FUNGJAI</div>
-              <div class="chat-subtitle">รับฟัง · ไม่ตัดสิน · อ่อนโยน</div>
-            </div>
-          </div>
-
-          <div class="chat-body">
-            <div
-              v-for="m in messages"
-              :key="m.id"
-              class="chat-row"
-              :class="m.from"
-            >
-              <div v-if="m.from === 'bot'" class="chat-avatar-sm">F</div>
-
-              <div class="chat-bubble">
-                <p class="chat-name">{{ m.name }}</p>
-                <p
-                  v-for="(line, i) in m.text.split('\n')"
-                  :key="i"
-                  class="chat-text"
-                >
-                  {{ line }}
-                </p>
-                <span class="chat-time">{{ m.time }}</span>
+      <section class="section section--highlight">
+        <div class="container chat-layout">
+          <div class="chat-window">
+            <!-- Header -->
+            <div class="chat-window-header">
+              <div class="chat-avatar">FJ</div>
+              <div>
+                <div class="chat-title">FUNGJAI</div>
+                <div class="chat-subtitle">รับฟัง · ไม่ตัดสิน · อ่อนโยน</div>
               </div>
             </div>
 
-            <div v-if="isTyping" class="chat-row bot">
-              <div class="chat-avatar-sm">F</div>
-              <div class="chat-bubble typing">
-                <span></span><span></span><span></span>
+            <div class="chat-window-body">
+              <div
+                v-for="m in messages"
+                :key="m.id"
+                class="chat-message-row"
+                :class="m.from === 'user' ? 'is-user' : 'is-bot'"
+              >
+                <div v-if="m.from === 'bot'" class="chat-avatar chat-avatar-sm">
+                  F
+                </div>
+
+                <div class="chat-bubble">
+                  <p class="chat-bubble-name">{{ m.name }}</p>
+                  <div class="chat-bubble-text">
+                    <p v-for="(line, i) in m.text.split('\n')" :key="i">
+                      {{ line }}
+                    </p>
+                  </div>
+                  <p class="chat-bubble-meta">{{ m.time }}</p>
+                </div>
+              </div>
+
+              <div v-if="isTyping" class="chat-message-row is-bot">
+                <div class="chat-avatar chat-avatar-sm">F</div>
+                <div class="chat-bubble typing-indicator">
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <form class="chat-input" @submit.prevent="sendMessage">
-            <textarea
-              v-model="userInput"
-              placeholder="อยากเล่าอะไรให้ FUNGJAI ฟังบ้างคะ…"
-              rows="1"
-              :disabled="isTyping"
-              @keydown="handleKeydown"
-            />
-            <button
-              type="submit"
-              :disabled="!userInput.trim() || isTyping"
-            >
-              ส่ง
-            </button>
-          </form>
+            <form class="chat-input-row" @submit.prevent="sendMessage">
+              <textarea
+                v-model="userInput"
+                class="chat-input"
+                placeholder="อยากเล่าอะไรให้ FUNGJAI ฟังบ้างคะ..."
+                rows="2"
+                :disabled="isTyping"
+                @keydown="handleKeydown"
+              />
+              <button
+                type="submit"
+                class="chat-send-btn"
+                :disabled="isTyping || !userInput.trim()"
+              >
+                ส่ง
+              </button>
+            </form>
+
+            <p class="chat-hint">
+              Enter = ส่ง · Shift + Enter = ขึ้นบรรทัดใหม่
+            </p>
+          </div>
         </div>
       </section>
     </main>
@@ -149,146 +186,169 @@ const handleKeydown = (e) => {
 </template>
 
 <style scoped>
-.safe-chat {
-  padding: 0;
+.chat-layout {
+  display: flex;
+  justify-content: center;
 }
 
 .chat-window {
+  width: 100%;
   max-width: 720px;
-  margin: 0 auto;
-  height: calc(100vh - 64px);
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 1.2rem;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
-  background: #fff;
-  border-radius: 24px;
-  box-shadow: 0 20px 40px rgba(0,0,0,.08);
 }
 
-.chat-header {
+.chat-window-header {
   display: flex;
-  gap: .75rem;
-  align-items: center;
-  padding: .9rem 1rem;
+  gap: 0.8rem;
   background: #fff7f4;
-  border-bottom: 1px solid #f2d6d0;
+  padding: 0.8rem 0.9rem;
+  border-radius: 16px;
+  margin-bottom: 0.4rem;
 }
 
 .chat-avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #ffd6d0;
+  background: #ffe0df;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-}
-
-.chat-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1rem;
-  background: #fffaf8;
-}
-
-.chat-row {
-  display: flex;
-  gap: .4rem;
-  margin-bottom: .8rem;
-}
-
-.chat-row.user {
-  justify-content: flex-end;
+  color: #d05a52;
 }
 
 .chat-avatar-sm {
   width: 26px;
   height: 26px;
-  border-radius: 50%;
-  background: #ffd6d0;
+  font-size: 0.7rem;
+}
+
+.chat-window-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem 0.7rem;
+}
+
+.chat-message-row {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: .7rem;
+  margin-bottom: 0.35rem; /* 👈 ชิดขึ้น */
+}
+
+.chat-message-row.is-user {
+  justify-content: flex-end;
 }
 
 .chat-bubble {
-  max-width: 80%;
-  background: #fff;
-  padding: .7rem .9rem;
-  border-radius: 16px;
-  box-shadow: 0 6px 14px rgba(0,0,0,.06);
+  max-width: 82%;
+  padding: 0.7rem 0.95rem;
+  border-radius: 18px;
+  background: #fffdfc;
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.05);
 }
 
-.chat-row.user .chat-bubble {
-  background: #ffece8;
+.chat-message-row.is-user .chat-bubble {
+  background: #fff1ec;
+  box-shadow: 0 5px 14px rgba(208, 90, 82, 0.18);
 }
 
-.chat-name {
-  font-size: .7rem;
-  font-weight: 600;
+.chat-bubble-name {
+  font-size: 0.72rem;
+  font-weight: 700;
   color: #d05a52;
+  margin-bottom: 0.2rem;
 }
 
-.chat-text {
-  margin: .15rem 0;
-  font-size: .9rem;
-}
-
-.chat-time {
-  font-size: .65rem;
+.chat-bubble-meta {
+  font-size: 0.68rem;
   color: #aaa;
+  margin-top: 0.3rem;
 }
 
-.typing span {
+.typing-indicator {
+  display: flex;
+  gap: 5px;
+}
+
+.dot {
   width: 6px;
   height: 6px;
   background: #d05a52;
   border-radius: 50%;
-  display: inline-block;
-  animation: blink 1.4s infinite;
+  animation: bounce 1.4s infinite;
 }
 
-.typing span:nth-child(2) { animation-delay: .2s }
-.typing span:nth-child(3) { animation-delay: .4s }
+.dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
 
-@keyframes blink {
-  0%,80%,100% { opacity: .3 }
-  40% { opacity: 1 }
+@keyframes bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-5px);
+  }
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0;
+  padding-top: 0.4rem;
 }
 
 .chat-input {
-  display: flex;
-  gap: .5rem;
-  padding: .7rem;
-  border-top: 1px solid #f2d6d0;
-}
-
-.chat-input textarea {
   flex: 1;
   border-radius: 14px;
-  border: 1px solid #ffd6d0;
-  padding: .6rem .8rem;
-  font-size: 16px;
+  border: 1px solid #ffd7d0;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.95rem;
 }
 
-.chat-input button {
+.chat-send-btn {
   border-radius: 999px;
-  padding: .5rem 1.1rem;
+  padding: 0.55rem 1.1rem;
   background: #d05a52;
   color: white;
   border: none;
   font-weight: 600;
+  cursor: pointer;
+}
+
+.chat-send-btn:disabled {
+  opacity: 0.45;
+}
+
+.chat-hint {
+  font-size: 0.7rem;
+  color: #aaa;
+  margin-top: 0.3rem;
+  text-align: center;
 }
 
 @media (max-width: 640px) {
-  .safe-hero {
-    display: none;
+  .chat-window {
+    border-radius: 16px;
+    padding: 1rem;
   }
 
-  .chat-window {
-    height: 100vh;
-    border-radius: 0;
+  .chat-bubble {
+    max-width: 92%;
+  }
+
+  .chat-input {
+    font-size: 16px;
   }
 }
 </style>

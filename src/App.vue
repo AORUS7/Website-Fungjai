@@ -102,7 +102,7 @@ const onTouchEnd = () => {
           class="mobile-link special"
           :class="{ active: isActive('/safe-space') }"
         >
-          Safe Space
+          SAFE SPACE
         </RouterLink>
       </nav>
     </header>
