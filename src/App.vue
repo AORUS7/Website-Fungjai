@@ -7,35 +7,10 @@ const year = new Date().getFullYear();
 
 const isActive = (path) => route.path === path;
 
-
-let startX = 0;
-let endX = 0;
-
 const routes = ["/", "/podcast", "/inside", "/safe-space"];
 
-const onTouchStart = (e) => {
-  startX = e.touches[0].clientX;
-};
 
-const onTouchMove = (e) => {
-  endX = e.touches[0].clientX;
-};
-
-const onTouchEnd = () => {
-  const diff = endX - startX;
-  const index = routes.indexOf(route.path);
-
-  if (Math.abs(diff) < 60) return;
-
-  if (diff < 0 && index < routes.length - 1) {
-    router.push(routes[index + 1]);
-  }
-
-  if (diff > 0 && index > 0) {
-    router.push(routes[index - 1]);
-  }
-};
-</script>ป
+</script>
 
 <template>
   <div class="page">
@@ -52,7 +27,11 @@ const onTouchEnd = () => {
 
         <!-- Desktop Nav -->
         <nav class="site-nav only-desktop">
-          <RouterLink to="/" class="nav-link" :class="{ active: isActive('/') }">
+          <RouterLink
+            to="/"
+            class="nav-link"
+            :class="{ active: isActive('/') }"
+          >
             หน้าแรก
           </RouterLink>
           <RouterLink
@@ -80,7 +59,11 @@ const onTouchEnd = () => {
       </div>
 
       <nav class="mobile-nav only-mobile">
-        <RouterLink to="/" class="mobile-link" :class="{ active: isActive('/') }">
+        <RouterLink
+          to="/"
+          class="mobile-link"
+          :class="{ active: isActive('/') }"
+        >
           หน้าแรก
         </RouterLink>
         <RouterLink
@@ -107,12 +90,7 @@ const onTouchEnd = () => {
       </nav>
     </header>
 
-    <main
-      class="main-content"
-      @touchstart="onTouchStart"
-      @touchmove="onTouchMove"
-      @touchend="onTouchEnd"
-    >
+    <main class="main-content">
       <RouterView v-slot="{ Component }">
         <transition name="page">
           <component :is="Component" :key="$route.fullPath" />
