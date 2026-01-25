@@ -1,93 +1,120 @@
 <template>
   <main class="podcast-page">
     <section class="hero">
-      <div class="container hero-inner">
-        <div class="hero-content">
-          <span class="hero-highlight">พอดแคสต์สำหรับหัวใจที่กำลังคิดเยอะ</span>
-
-          <h1 class="hero-title">
-            พอดแคสต์ที่อยากนั่งคุยกับใจคุณ
-          </h1>
-
-          <p class="hero-text">
-            รวมตอนสั้น ๆ ที่พูดถึงเรื่องความรู้สึก ความสัมพันธ์
-            และวันที่ไม่ง่ายเท่าไหร่ ฟังได้แบบไม่ต้องพยายามเข้มแข็ง
-          </p>
-
-          <div class="hero-actions">
-            <a href="#episodes" class="btn btn-primary">
-              เลือกตอนที่อยากฟัง
-            </a>
-          </div>
-        </div>
-
-        <div class="hero-visual">
-          <a
-            class="popup-video podcast-video-card"
-            href="https://embed.mindstamp.com/e/jLPkFJBKGQBd?fullscreen=1"
-          >
-            <img
-              src="https://mindstamp-pub.s3.us-west-1.amazonaws.com/users/85fe6885-124e-4414-b8fd-9e4fb611bead/images/1767386688-deab93ff-105e-4d20-87b0-626901f58da1-thumbnail.jpg"
-              alt="Play Podcast"
-            />
-            <div class="play-overlay">▶</div>
-          </a>
-        </div>
+      <div class="container">
+        <span class="hero-highlight">พอดแคสต์สำหรับหัวใจ</span>
+        <h1 class="hero-title">เลือกฟังตามความรู้สึกของคุณ</h1>
+        <p class="hero-text">
+          ไม่ต้องรีบดีขึ้น แค่ฟังไปพร้อมกันก็พอ 🤍
+        </p>
       </div>
     </section>
 
-    <section id="episodes" class="section section--soft">
+    <section class="section section--soft">
       <div class="container">
-        <div class="section-header">
-          <h2 class="section-title">ตอนต่าง ๆ ใน Podcast</h2>
-          <p class="section-subtitle">
-            เลือกตอนที่ตรงกับความรู้สึกของคุณในตอนนี้
-          </p>
+        <div class="category-tabs">
+          <button
+            v-for="c in categories"
+            :key="c.key"
+            :class="{ active: activeCategory === c.key }"
+            @click="activeCategory = c.key"
+          >
+            {{ c.label }}
+          </button>
         </div>
 
         <div class="grid-2">
-          <article class="card episode-card">
-            <div class="card-tag">EP. 01</div>
-            <h3 class="card-title">
-              เมื่อเราเหนื่อยแต่ไม่รู้จะพักยังไง
-            </h3>
-            <p class="card-text">
-              สำรวจความเหนื่อยที่ไม่ได้มาจากงาน
-              แต่มาจากหัวใจที่ต้องเข้มแข็งตลอดเวลา
-            </p>
+          <article
+            v-for="ep in filteredEpisodes"
+            :key="ep.id"
+            class="card episode-card"
+          >
+            <h3 class="card-title">{{ ep.title }}</h3>
+            <p class="card-text">{{ ep.desc }}</p>
 
-            <a
-              class="popup-video btn btn-ghost"
-              href="https://embed.mindstamp.com/e/jLPkFJBKGQBd?fullscreen=1"
-            >
-              กดฟังตอนนี้
-            </a>
+            <button class="btn btn-ghost" @click="openVideo(ep)">
+              ▶ กดฟังตอนนี้
+            </button>
           </article>
         </div>
       </div>
     </section>
+
+    <dialog ref="videoDialog" class="video-dialog">
+      <button class="close-btn" @click="closeVideo">✕</button>
+
+      <video
+        v-if="activeVideo"
+        :src="activeVideo"
+        controls
+        autoplay
+        playsinline
+      ></video>
+    </dialog>
   </main>
 </template>
 
 <script setup>
-import { onMounted } from "vue";
-import $ from "jquery";
-import "magnific-popup";
-import "magnific-popup/dist/magnific-popup.css";
+import { ref, computed } from "vue";
 
-onMounted(() => {
-  $(".popup-video").magnificPopup({
-    type: "iframe",
-    mainClass: "mfp-fade",
-    preloader: true,
-  });
+const categories = [
+  { key: "love", label: "ความรัก" },
+  { key: "friend", label: "เพื่อน" },
+  { key: "family", label: "ครอบครัว" },
+  { key: "study", label: "การเรียน" },
+];
 
-  window.addEventListener("message", (event) => {
-    if (event.data?.event === "redirect") {
-      window.location.href = event.data.info.data.link;
-    }
-  });
-});
+const activeCategory = ref("love");
+
+const episodes = [
+  {
+    id: 1,
+    category: "love",
+    title: "รักใครสักคน แต่ลืมรักตัวเอง",
+    desc: "เมื่อความรักทำให้เราอ่อนล้า",
+    video: "/video/love.mp4",
+  },
+  {
+    id: 2,
+    category: "friend",
+    title: "เพื่อนที่ค่อย ๆ หายไป",
+    desc: "ความสัมพันธ์ที่เปลี่ยนไปตามเวลา",
+    video: "/video/friend.mp4",
+  },
+  {
+    id: 3,
+    category: "family",
+    title: "บ้านที่กลับไปแล้วไม่เหมือนเดิม",
+    desc: "ความรู้สึกที่พูดกับใครไม่ได้",
+    video: "/video/family.mp4",
+  },
+  {
+    id: 4,
+    category: "study",
+    title: "เหนื่อยกับการเรียน แต่ต้องฝืนไหว",
+    desc: "แรงกดดันที่ไม่มีใครเห็น",
+    video: "/video/study.mp4",
+  },
+];
+
+const filteredEpisodes = computed(() =>
+  episodes.filter((e) => e.category === activeCategory.value)
+);
+
+const videoDialog = ref(null);
+const activeVideo = ref(null);
+
+const openVideo = (ep) => {
+  activeVideo.value = ep.video;
+  videoDialog.value.showModal();
+};
+
+const closeVideo = () => {
+  const video = videoDialog.value.querySelector("video");
+  video?.pause();
+  activeVideo.value = null;
+  videoDialog.value.close();
+};
 </script>
 
 <style scoped>
@@ -96,81 +123,60 @@ onMounted(() => {
 }
 
 .hero {
-  padding: 3rem 0 2.5rem;
-}
-
-.hero-inner {
-  display: grid;
-  gap: 2rem;
-}
-
-.hero-content {
-  max-width: 520px;
+  padding: 3rem 0 2.2rem;
 }
 
 .hero-highlight {
   display: inline-block;
-  margin-bottom: 0.5rem;
   padding: 0.25rem 0.7rem;
   border-radius: 999px;
-  background: rgba(255, 138, 128, 0.12);
-  color: var(--color-accent);
+  background: rgba(255, 138, 128, 0.15);
+  color: #d05a52;
   font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  margin-bottom: 0.5rem;
 }
 
 .hero-title {
-  font-size: 1.8rem;
-  margin: 0 0 0.6rem;
+  font-size: 1.9rem;
+  margin-bottom: 0.6rem;
 }
 
 .hero-text {
   font-size: 0.95rem;
-  color: var(--color-text-soft);
-  margin-bottom: 1.2rem;
+  color: #777;
 }
 
-.hero-actions {
+.category-tabs {
+  display: flex;
+  gap: 0.6rem;
   margin-bottom: 1.6rem;
+  flex-wrap: wrap;
 }
 
-.hero-visual {
-  display: flex;
-  justify-content: center;
+.category-tabs button {
+  padding: 0.45rem 1.05rem;
+  border-radius: 999px;
+  border: 1px solid #ffd7d0;
+  background: #fff;
+  cursor: pointer;
 }
 
-.podcast-video-card {
-  position: relative;
-  width: 100%;
-  max-width: 420px;
-  border-radius: 24px;
-  overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
-}
-
-.podcast-video-card img {
-  width: 100%;
-  display: block;
-}
-
-.play-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 3.5rem;
+.category-tabs button.active {
+  background: #ff8a80;
   color: #fff;
-  background: rgba(0, 0, 0, 0.35);
-  transition: background 0.25s ease;
+  border-color: transparent;
 }
 
-.podcast-video-card:hover .play-overlay {
-  background: rgba(0, 0, 0, 0.5);
+.grid-2 {
+  display: grid;
+  gap: 1.2rem;
 }
 
 .episode-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
@@ -179,18 +185,40 @@ onMounted(() => {
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.08);
 }
 
+.video-dialog {
+  border: none;
+  border-radius: 18px;
+  padding: 0;
+  width: min(90vw, 480px);
+  background: #000;
+}
+
+.video-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.video-dialog video {
+  width: 100%;
+  height: auto;
+  border-radius: 18px;
+}
+
+.close-btn {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+}
+
 @media (min-width: 768px) {
-  .hero-inner {
-    grid-template-columns: 1.2fr 1fr;
-    align-items: center;
-  }
-
-  .hero-title {
-    font-size: 2.1rem;
-  }
-
-  .hero-actions {
-    margin-bottom: 0;
+  .grid-2 {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 </style>
