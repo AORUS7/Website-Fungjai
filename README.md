@@ -66,6 +66,7 @@ Concept
 ⸻
 
 🎬 Video Popup Flow
+
 	1.	ผู้ใช้กด “กดฟังตอนนี้”
 	2.	เปิด <dialog>
 	3.	โหลด video จาก /public/video/*.mp4
