@@ -1,22 +1,16 @@
 <script setup>
-import { RouterLink, RouterView, useRoute, useRouter } from "vue-router";
+import { RouterLink, RouterView, useRoute } from "vue-router";
 
 const route = useRoute();
-const router = useRouter();
 const year = new Date().getFullYear();
 
 const isActive = (path) => route.path === path;
-
-const routes = ["/", "/podcast", "/inside", "/safe-space"];
-
-
 </script>
 
 <template>
   <div class="page">
-    <header class="site-header">
+    <header v-if="$route.path !== '/login'" class="site-header">
       <div class="container site-header-inner">
-        <!-- Brand -->
         <div class="brand">
           <div class="brand-mark"></div>
           <div>
@@ -25,7 +19,6 @@ const routes = ["/", "/podcast", "/inside", "/safe-space"];
           </div>
         </div>
 
-        <!-- Desktop Nav -->
         <nav class="site-nav only-desktop">
           <RouterLink
             to="/"
@@ -34,6 +27,7 @@ const routes = ["/", "/podcast", "/inside", "/safe-space"];
           >
             หน้าแรก
           </RouterLink>
+
           <RouterLink
             to="/podcast"
             class="nav-link"
@@ -41,6 +35,7 @@ const routes = ["/", "/podcast", "/inside", "/safe-space"];
           >
             Podcast
           </RouterLink>
+
           <RouterLink
             to="/inside"
             class="nav-link"
@@ -48,6 +43,7 @@ const routes = ["/", "/podcast", "/inside", "/safe-space"];
           >
             Inside
           </RouterLink>
+
           <RouterLink
             to="/safe-space"
             class="nav-link nav-pill"
@@ -66,6 +62,7 @@ const routes = ["/", "/podcast", "/inside", "/safe-space"];
         >
           หน้าแรก
         </RouterLink>
+
         <RouterLink
           to="/podcast"
           class="mobile-link"
@@ -73,6 +70,7 @@ const routes = ["/", "/podcast", "/inside", "/safe-space"];
         >
           Podcast
         </RouterLink>
+
         <RouterLink
           to="/inside"
           class="mobile-link"
@@ -80,6 +78,7 @@ const routes = ["/", "/podcast", "/inside", "/safe-space"];
         >
           Inside
         </RouterLink>
+
         <RouterLink
           to="/safe-space"
           class="mobile-link special"
@@ -92,13 +91,13 @@ const routes = ["/", "/podcast", "/inside", "/safe-space"];
 
     <main class="main-content">
       <RouterView v-slot="{ Component }">
-        <transition name="page">
+        <Transition name="page" mode="out-in">
           <component :is="Component" :key="$route.fullPath" />
-        </transition>
+        </Transition>
       </RouterView>
     </main>
 
-    <footer class="site-footer only-desktop">
+    <footer v-if="$route.path !== '/login'" class="site-footer only-desktop">
       © {{ year }} FUNGJAI – ใจคุณสำคัญเสมอ
     </footer>
   </div>
