@@ -35,6 +35,7 @@
             </p>
           </template>
 
+          
           <template v-else-if="level === 'high'">
             <h3>ความเครียดมาก (8–9 คะแนน)</h3>
             <p>
