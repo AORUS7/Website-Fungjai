@@ -2,80 +2,60 @@
   <main class="inside-result">
     <section class="hero hero-compact">
       <div class="container">
-        <span class="hero-highlight">ผลจากแบบสำรวจหัวใจของคุณ</span>
-        <h1 class="hero-title">
-          ตอนนี้ใจของคุณ<br />อาจกำลังเป็นแบบนี้
-        </h1>
+        <span class="hero-highlight">ผลการประเมิน ST-5</span>
+        <h1 class="hero-title">ระดับความเครียดของคุณตอนนี้</h1>
         <p class="hero-text">
-          ไม่ใช่การวินิจฉัย แค่เป็นกระจกเล็ก ๆ
-          ที่ช่วยสะท้อนความรู้สึกของคุณในช่วงนี้
+          นี่ไม่ใช่การวินิจฉัยทางการแพทย์
+          แต่เป็นภาพสะท้อนความรู้สึกของคุณในช่วงนี้
         </p>
       </div>
     </section>
 
     <section class="section section--soft">
       <div class="container">
-        <div class="score-emotion">
-          <div class="score-label">ระดับความเหนื่อยของหัวใจตอนนี้</div>
-          <div class="score-value">
-            <span>{{ score }}</span>
-            <small>/ 9</small>
-          </div>
+        <div class="score-box">
+          <div class="score-label">คะแนนรวม</div>
+          <div class="score-value">{{ score }} <small>/ 15</small></div>
         </div>
 
         <div class="emotion-card">
-          <template v-if="level === 'light'">
-            <h3>คุณกำลังพอรับมือได้อยู่</h3>
+          <template v-if="level === 'low'">
+            <h3>ความเครียดน้อย (0–4 คะแนน)</h3>
             <p>
-              ตอนนี้ชีวิตอาจมีความเหนื่อยอยู่บ้าง
-              แต่คุณยังมีพื้นที่หายใจ และวิธีดูแลตัวเองอยู่
-            </p>
-            <p>
-              การหยุดอ่านบทความสั้น ๆ หรืออยู่กับตัวเองเงียบ ๆ
-              ก็ถือเป็นการพักใจที่ดีแล้ว
+              คุณอาจมีความเครียดเล็กน้อยตามปกติของชีวิต
+              ยังอยู่ในระดับที่จัดการได้
             </p>
           </template>
 
           <template v-else-if="level === 'medium'">
-            <h3>คุณอาจกำลังเหนื่อยมากกว่าที่คิด</h3>
+            <h3>ความเครียดปานกลาง (5–7 คะแนน)</h3>
             <p>
-              เหมือนหัวใจของคุณกำลังแบกหลายอย่างพร้อมกัน
-              ทั้งความคาดหวัง ความกดดัน และคำถามกับตัวเอง
+              ช่วงนี้อาจมีหลายเรื่องให้กังวล
+              ลองจัดเวลาพักผ่อนหรือพูดคุยกับคนที่ไว้ใจดูนะ
             </p>
+          </template>
+
+          
+          <template v-else-if="level === 'high'">
+            <h3>ความเครียดมาก (8–9 คะแนน)</h3>
             <p>
-              ถ้าคุณอยากเล่า ลองเริ่มจากพื้นที่ที่ปลอดภัย
-              หรือ SAFE SPACE ของ FUNGJAI ก็ได้
-              ไม่จำเป็นต้องเล่าทั้งหมดในครั้งเดียว
+              คุณอาจกำลังเผชิญแรงกดดันหลายด้าน
+              การดูแลตัวเองและขอความช่วยเหลือเป็นสิ่งสำคัญ
             </p>
           </template>
 
           <template v-else>
-            <h3>หัวใจของคุณอาจกำลังเหนื่อยมากจริง ๆ</h3>
+            <h3>ความเครียดมากที่สุด (10–15 คะแนน)</h3>
             <p>
-              จากคะแนนนี้ ดูเหมือนว่าคุณกำลังถืออะไรหนักพอสมควร
-              ทั้งความเหนื่อย ความโดดเดี่ยว และแรงกดดัน
-            </p>
-            <p>
-              แค่คุณยังอยู่ตรงนี้ และทำแบบสำรวจจนจบ
-              ก็ถือว่าเก่งมากแล้วนะ
-            </p>
-            <p>
-              คุณไม่จำเป็นต้องผ่านทุกอย่างไปคนเดียวเสมอไป
+              คะแนนนี้สะท้อนว่าคุณอาจกำลังเผชิญความเครียดระดับสูงมาก
+              หากรู้สึกไม่ไหว ควรพิจารณาปรึกษาผู้เชี่ยวชาญ
             </p>
           </template>
         </div>
 
         <div class="result-actions">
-          <RouterLink to="/safe-space" class="btn btn-primary">
-            ไปยัง SAFE SPACE
-          </RouterLink>
-
-          <RouterLink to="/inside" class="btn btn-ghost">
-            อ่านบทความเพิ่มเติม
-          </RouterLink>
-
-          <RouterLink to="/inside-question" class="action-link">
-            ทำแบบสำรวจอีกครั้ง
+          <RouterLink to="/inside-question" class="btn-primary">
+            ทำแบบประเมินอีกครั้ง
           </RouterLink>
         </div>
       </div>
@@ -88,30 +68,30 @@ import { computed } from "vue";
 import { useRoute, RouterLink } from "vue-router";
 
 const route = useRoute();
-
 const score = computed(() => Number(route.query.score || 0));
 
 const level = computed(() => {
-  if (score.value <= 3) return "light";
-  if (score.value <= 6) return "medium";
-  return "heavy";
+  if (score.value <= 4) return "low";
+  if (score.value <= 7) return "medium";
+  if (score.value <= 9) return "high";
+  return "veryHigh";
 });
 </script>
 
 <style scoped>
 .hero-compact {
-  padding: 2.2rem 0 1.6rem;
+  padding: 2.5rem 0 1.5rem;
+  text-align: center;
 }
 
-.score-emotion {
+.score-box {
   text-align: center;
-  margin-bottom: 1.4rem;
+  margin-bottom: 2rem;
 }
 
 .score-label {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   color: var(--color-text-soft);
-  margin-bottom: 0.2rem;
 }
 
 .score-value {
@@ -127,34 +107,52 @@ const level = computed(() => {
 
 .emotion-card {
   background: #fff;
-  border-radius: 24px;
-  padding: 1.8rem 1.6rem;
-  box-shadow: var(--shadow-soft);
+  border-radius: 28px;
+  padding: 2rem;
   border: 1px solid rgba(255, 220, 210, 0.6);
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.05);
 }
 
 .emotion-card h3 {
-  font-size: 1.25rem;
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.8rem;
 }
 
 .emotion-card p {
-  font-size: 0.95rem;
   color: var(--color-text-soft);
-  margin-bottom: 0.7rem;
+  line-height: 1.6;
 }
 
 .result-actions {
-  margin-top: 1.6rem;
+  margin-top: 2.5rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
+  justify-content: center;
 }
 
-.action-link {
-  text-align: center;
-  font-size: 0.85rem;
-  color: var(--color-text-soft);
-  text-decoration: underline;
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ff8a80, #ff6f91);
+  color: #ffffff;
+  text-decoration: none;
+  border: none;
+  padding: 1rem 2.4rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  box-shadow: 0 12px 30px rgba(255, 120, 130, 0.35);
+  transition: all 0.25s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px rgba(255, 120, 130, 0.45);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 18px rgba(255, 120, 130, 0.3);
 }
 </style>
