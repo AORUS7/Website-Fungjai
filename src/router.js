@@ -60,6 +60,7 @@ const routes = [
   },
   {
     path: "/inside-result",
+    name: "InsideResult",
     component: InsideResult,
     meta: { requiresAuth: true },
   },
