@@ -8,6 +8,7 @@ const messages = ref([
     name: "FUNGJAI",
     text: "สวัสดีค่ะ 🤍\nขอบคุณที่เข้ามาใน SAFE SPACE วันนี้นะคะ\nถ้าอยากเล่าอะไร เราพร้อมฟังเสมอค่ะ",
     time: "ตอนนี้",
+    sources: [],
   },
 ]);
 
@@ -36,6 +37,7 @@ const sendMessage = async () => {
       hour: "2-digit",
       minute: "2-digit",
     }),
+    sources: [],
   });
 
   userInput.value = "";
@@ -43,17 +45,10 @@ const sendMessage = async () => {
   await scrollToBottom();
 
   try {
-    const llmMessages = [
-      {
-        role: "system",
-        content:
-          "คุณคือ FUNGJAI พื้นที่ปลอดภัย รับฟังอย่างอ่อนโยน ไม่ตัดสิน ไม่ให้คำสั่ง",
-      },
-      ...messages.value.map((m) => ({
+    const llmMessages = messages.value.map((m) => ({
         role: m.from === "user" ? "user" : "assistant",
         content: m.text,
-      })),
-    ];
+      }));
 
     const response = await fetch("/api/chat", {
       method: "POST",
@@ -62,7 +57,9 @@ const sendMessage = async () => {
     });
 
     const data = await response.json();
-    if (!response.ok || !data.reply) throw new Error();
+    if (!response.ok || !data.reply) {
+      throw new Error(data?.error || "Chat service is unavailable");
+    }
 
     messages.value.push({
       id: idCounter++,
@@ -73,14 +70,23 @@ const sendMessage = async () => {
         hour: "2-digit",
         minute: "2-digit",
       }),
+      sources: Array.isArray(data.sources) ? data.sources : [],
     });
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    const text = message === "No reliable sources were found for this question"
+      ? "ตอนนี้เรายังหาแหล่งข้อมูลที่น่าเชื่อถือพอสำหรับคำถามนี้ไม่ได้\nเลยไม่อยากเดาคำตอบให้คุณนะคะ 🤍"
+      : message === "Chat service is not configured"
+        ? "ตอนนี้ระบบค้นข้อมูลยังไม่ได้ตั้งค่าเรียบร้อย\nโปรดลองใหม่อีกครั้งในภายหลังนะคะ 🤍"
+        : "ขอโทษนะคะ เหมือนการเชื่อมต่อจะสะดุดนิดหน่อย\nแต่เรายังอยู่ตรงนี้นะคะ 🤍";
+
     messages.value.push({
       id: idCounter++,
       from: "bot",
       name: "FUNGJAI",
-      text: "ขอโทษนะคะ เหมือนการเชื่อมต่อจะสะดุดนิดหน่อย\nแต่เรายังอยู่ตรงนี้นะคะ 🤍",
+      text,
       time: "เมื่อสักครู่",
+      sources: [],
     });
   } finally {
     isTyping.value = false;
@@ -153,6 +159,16 @@ const handleKeydown = (e) => {
                     </p>
                   </div>
                   <p class="chat-bubble-meta">{{ m.time }}</p>
+                  <div v-if="m.from === 'bot' && m.sources?.length" class="chat-sources">
+                    <p class="chat-sources-title">แหล่งข้อมูล</p>
+                    <ul>
+                      <li v-for="(source, index) in m.sources" :key="source.url">
+                        <a :href="source.url" target="_blank" rel="noopener noreferrer">
+                          [{{ index + 1 }}] {{ source.title }}
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
 
@@ -188,7 +204,7 @@ const handleKeydown = (e) => {
             </form>
 
             <p class="chat-hint">
-              Enter = ส่ง · Shift + Enter = ขึ้นบรรทัดใหม่
+              คำตอบที่อ้างอิงข้อมูลภายนอกจะแสดงแหล่งข้อมูลใต้ข้อความ · Enter = ส่ง · Shift + Enter = ขึ้นบรรทัดใหม่
             </p>
           </div>
         </div>
@@ -281,6 +297,36 @@ const handleKeydown = (e) => {
   font-size: 0.68rem;
   color: #aaa;
   margin-top: 0.3rem;
+}
+
+.chat-sources {
+  margin-top: 0.6rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid #f5deda;
+}
+
+.chat-sources-title {
+  margin: 0 0 0.25rem;
+  color: #9b625d;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.chat-sources ul {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.chat-sources li {
+  margin: 0.15rem 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.chat-sources a {
+  color: #b34e47;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .typing-indicator {
