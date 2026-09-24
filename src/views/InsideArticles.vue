@@ -36,9 +36,6 @@
               {{ article.summary }}
             </p>
 
-            <span class="article-read">
-              อ่านต่อ →
-            </span>
           </article>
         </div>
       </div>
@@ -168,13 +165,6 @@ const dailyArticles = computed(() => {
   font-size: 0.9rem;
   color: var(--color-text-soft);
   line-height: 1.6;
-}
-
-.article-read {
-  display: inline-block;
-  margin-top: 0.6rem;
-  font-size: 0.85rem;
-  color: var(--color-accent);
 }
 
 @media (min-width: 768px) {
