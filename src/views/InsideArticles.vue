@@ -13,11 +13,14 @@
             รวมเรื่องเล็ก ๆ จากความรู้สึกที่หลายคนอาจกำลังเผชิญอยู่เหมือนกัน  
             อ่านช้า ๆ ในจังหวะของคุณเอง
           </p>
+          <p class="articles-schedule">
+            วันนี้มี {{ dailyArticles.length }} บทความ · เปลี่ยนชุดใหม่ทุกวัน
+          </p>
         </header>
 
         <div class="articles-list">
           <article
-            v-for="article in articles"
+            v-for="article in dailyArticles"
             :key="article.id"
             class="article-card"
           >
@@ -44,52 +47,53 @@
 </template>
 
 <script setup>
+import { computed } from "vue";
 import { RouterLink } from "vue-router";
+import { insideArticles } from "../data/insideArticles";
 
-const articles = [
-  {
-    id: 1,
-    tag: "ความรู้สึก",
-    title: "ความรู้สึกที่เราไม่ค่อยกล้าพูดถึง",
-    summary:
-      "บางครั้งเราบอกตัวเองว่า “เราควรโอเคแล้วสิ” ทั้งที่ลึก ๆ ยังไม่โอเคเลยด้วยซ้ำ การยอมรับว่าเรายังไม่ไหว ไม่ได้แปลว่าอ่อนแอ แต่มันคือจุดเริ่มต้นของการดูแลหัวใจตัวเอง",
-  },
-  {
-    id: 2,
-    tag: "ความคิดวนซ้ำ",
-    title: "เมื่อความคิดในหัววิ่งเร็วเกินไป",
-    summary:
-      "ในวันที่สมองไม่ยอมหยุดคิด ความเหนื่อยอาจไม่ได้มาจากเหตุการณ์ตรงหน้า แต่มาจากเรื่องเล่าในหัวที่เราแต่งเติมขึ้นมาเอง ลองแยกมันออกจากความจริงดูบ้าง",
-  },
-  {
-    id: 3,
-    tag: "การดูแลตัวเอง",
-    title: "อยู่กับตัวเองอย่างอ่อนโยนได้ยังไง",
-    summary:
-      "เราให้ความเข้าใจกับคนอื่นเก่งเสมอ แต่กับตัวเองกลับเข้มงวดเกินไป บทความนี้ชวนให้ลองพูดกับตัวเองให้เบาลง เหมือนที่เราคุยกับคนที่เรารัก",
-  },
-  {
-    id: 4,
-    tag: "ตัวตน",
-    title: "เมื่อเราไม่รู้ว่าจริง ๆ แล้วต้องการอะไร",
-    summary:
-      "บางช่วงชีวิตเราอาจแค่รู้สึกว่างเปล่า ไม่ได้เบื่อ แต่ก็ไม่ตื่นเต้น ลองสังเกตสิ่งเล็ก ๆ ที่ทำให้ใจนิ่งขึ้น อาจเป็นคำตอบที่คุณมองข้ามไป",
-  },
-  {
-    id: 5,
-    tag: "ความเหงา",
-    title: "อยู่ท่ามกลางผู้คนแต่ยังรู้สึกโดดเดี่ยว",
-    summary:
-      "ความเหงาบางแบบไม่ได้เกิดจากการอยู่คนเดียว แต่เกิดจากการที่เราไม่สามารถเป็นตัวเองได้จริง ๆ กับใครสักคน",
-  },
-  {
-    id: 6,
-    tag: "การเปรียบเทียบ",
-    title: "เมื่อเราเผลอเอาตัวเองไปเทียบกับคนอื่น",
-    summary:
-      "ชีวิตของคนอื่นที่เห็นผ่านหน้าจอ ไม่ได้สะท้อนความจริงทั้งหมด บางทีเรากำลังตัดสินตัวเองจากภาพที่ไม่สมบูรณ์",
-  },
-];
+const ARTICLES_PER_DAY = 5;
+
+const getMonday = (date) => {
+  const monday = new Date(date);
+  monday.setHours(0, 0, 0, 0);
+  const day = monday.getDay() || 7;
+  monday.setDate(monday.getDate() - day + 1);
+  return monday;
+};
+
+const createSeed = (value) => [...value].reduce(
+  (seed, character) => ((seed * 31) + character.charCodeAt(0)) >>> 0,
+  0,
+);
+
+const shuffleForWeek = (items, weekKey) => {
+  let seed = createSeed(weekKey);
+  const random = () => {
+    seed = (seed + 0x6d2b79f5) >>> 0;
+    let result = seed;
+    result = Math.imul(result ^ (result >>> 15), result | 1);
+    result ^= result + Math.imul(result ^ (result >>> 7), result | 61);
+    return ((result ^ (result >>> 14)) >>> 0) / 4294967296;
+  };
+
+  const shuffled = [...items];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+  return shuffled;
+};
+
+const dailyArticles = computed(() => {
+  const today = new Date();
+  const monday = getMonday(today);
+  const dayIndex = Math.floor((today - monday) / 86_400_000);
+  const weekKey = monday.toISOString().slice(0, 10);
+  const weeklyArticles = shuffleForWeek(insideArticles, weekKey);
+  const start = dayIndex * ARTICLES_PER_DAY;
+
+  return weeklyArticles.slice(start, start + ARTICLES_PER_DAY);
+});
 </script>
 
 <style scoped>
@@ -116,6 +120,12 @@ const articles = [
 
 .articles-subtitle {
   font-size: 0.95rem;
+  color: var(--color-text-soft);
+}
+
+.articles-schedule {
+  margin: 0.7rem 0 0;
+  font-size: 0.8rem;
   color: var(--color-text-soft);
 }
 
