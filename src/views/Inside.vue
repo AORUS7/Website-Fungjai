@@ -1,5 +1,5 @@
 <template>
-  <main class="inside-page">
+  <main ref="page" class="inside-page inside-interactive">
     <section class="hero">
       <div class="container hero-inner">
         <div class="hero-content">
@@ -23,13 +23,15 @@
             </RouterLink>
           </div>
 
+          <button type="button" class="checkin-reopen" @click="openCheckin">เช็กอินกับใจวันนี้ ↗</button>
+
           <p class="hero-note">
             ไม่มีวิธีที่ถูกหรือผิด  
             มีแค่จังหวะที่หัวใจคุณไหวในวันนี้ 💗
           </p>
         </div>
 
-        <div class="hero-visual">
+        <div class="hero-visual" data-reveal>
           <div class="hero-card">
             <div class="hero-chip">
               <span class="hero-chip-dot"></span>
@@ -46,7 +48,7 @@
       </div>
     </section>
 
-    <section class="section section--soft">
+    <section id="inside-feelings" class="section section--soft" tabindex="-1">
       <div class="container">
         <div class="section-header">
           <h2 class="section-title">
@@ -58,7 +60,7 @@
         </div>
 
         <div class="feeling-list">
-          <article class="card card-soft">
+          <article class="card card-soft" data-reveal>
             <h3 class="card-title">รู้สึกยุ่งเหยิง สับสนไปหมด</h3>
             <p class="card-text">
               ตอนนี้ไม่จำเป็นต้องหาคำตอบให้ทุกอย่างก็ได้
@@ -67,7 +69,7 @@
             </p>
           </article>
 
-          <article class="card card-soft">
+          <article class="card card-soft" data-reveal>
             <h3 class="card-title">เหนื่อย แต่ไม่รู้จะพักยังไง</h3>
             <p class="card-text">
               การพักไม่จำเป็นต้องเป็นอะไรยิ่งใหญ่
@@ -77,7 +79,7 @@
             </p>
           </article>
 
-          <article class="card card-soft">
+          <article class="card card-soft" data-reveal>
             <h3 class="card-title">อยากลองคุยกับตัวเองดูสักครั้ง</h3>
             <p class="card-text">
               การตอบคำถามสั้น ๆ ช้า ๆ
@@ -87,7 +89,7 @@
           </article>
         </div>
 
-        <div class="quote-wrap">
+        <div class="quote-wrap" data-reveal>
           <div class="quote-block">
             <p>
               “ไม่ว่าคุณจะเลือกเริ่มจากการอ่านบทความ
@@ -101,11 +103,77 @@
         </div>
       </div>
     </section>
+    <Teleport to="body">
+      <dialog ref="checkin" class="inside-checkin" aria-labelledby="checkin-title" aria-describedby="checkin-description" @click="closeOnBackdrop" @close="restoreFocus">
+        <button type="button" class="checkin-close" aria-label="ปิดการเช็กอิน" autofocus @click="closeCheckin">×</button>
+        <span class="checkin-eyebrow">A MOMENT FOR YOU</span>
+        <h2 id="checkin-title">วันนี้ใจคุณเป็นยังไงบ้าง</h2>
+        <p id="checkin-description">แวะทักทายตัวเองสักนิด เลือกจุดเริ่มต้นที่คุณอยากลองได้เลย ไม่มีคำตอบที่ถูกหรือผิด</p>
+        <div class="checkin-options">
+          <button type="button" @click="chooseFeeling('rest')">อยากพักใจ <span>อ่านข้อความอ่อนโยน ↓</span></button>
+          <button type="button" @click="chooseFeeling('read')">อยากอ่านอะไรสักหน่อย <span>บทความวันนี้ ↗</span></button>
+          <button type="button" @click="chooseFeeling('explore')">ยังไม่แน่ใจว่ารู้สึกอะไร <span>ลองสำรวจความรู้สึก ↗</span></button>
+        </div>
+        <p class="checkin-note">เลือกตามความต้องการของคุณ โดยไม่มีการวิเคราะห์หรือวินิจฉัย</p>
+        <button type="button" class="checkin-skip" @click="closeCheckin">ไว้ทีหลัง ขอค่อย ๆ ดูก่อน</button>
+      </dialog>
+    </Teleport>
   </main>
 </template>
 
 <script setup>
-import { RouterLink } from "vue-router";
+import { onMounted, onBeforeUnmount, ref } from "vue";
+import { RouterLink, useRouter } from "vue-router";
+import { useInsideMotion } from "../composables/useInsideMotion";
+import "../assets/insideInteractions.css";
+
+const page = ref(null);
+const checkin = ref(null);
+const router = useRouter();
+useInsideMotion(page);
+const SESSION_KEY = "fungjai:inside-checkin:v1";
+let timer;
+let previousFocus;
+let scrollOverflow;
+let seenInMemory = false;
+function openCheckin() {
+  if (!checkin.value || checkin.value.open) return;
+  previousFocus = document.activeElement;
+  scrollOverflow = document.body.style.overflow;
+  checkin.value.showModal();
+  document.body.style.overflow = "hidden";
+  seenInMemory = true;
+  try { sessionStorage.setItem(SESSION_KEY, "seen"); } catch { /* Storage may be unavailable. */ }
+}
+function restoreFocus() {
+  if (scrollOverflow !== undefined) document.body.style.overflow = scrollOverflow;
+  scrollOverflow = undefined;
+  if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+}
+function closeCheckin() { checkin.value?.close(); }
+function closeOnBackdrop(event) {
+  if (event.target !== checkin.value) return;
+  const bounds = checkin.value.getBoundingClientRect();
+  if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) closeCheckin();
+}
+function chooseFeeling(destination) {
+  closeCheckin();
+  if (destination === "rest") {
+    const section = document.getElementById("inside-feelings");
+    section?.focus({ preventScroll: true });
+    section?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
+  } else router.push(destination === "read" ? "/inside/articles" : "/inside-question");
+}
+onMounted(() => {
+  let seen = seenInMemory;
+  try { seen = seen || sessionStorage.getItem(SESSION_KEY) === "seen"; } catch { /* Keep the page usable without storage. */ }
+  if (!seen) timer = window.setTimeout(openCheckin, 900);
+});
+onBeforeUnmount(() => {
+  window.clearTimeout(timer);
+  closeCheckin();
+  restoreFocus();
+});
 </script>
 
 <style scoped>

@@ -1,5 +1,5 @@
 <template>
-  <main class="inside-articles">
+  <main ref="page" class="inside-articles inside-interactive">
     <section class="section section--soft">
       <div class="container">
         <RouterLink to="/inside" class="back-link">
@@ -23,6 +23,7 @@
             v-for="article in dailyArticles"
             :key="article.id"
             class="article-card"
+            data-reveal
           >
             <span v-if="article.tag" class="article-tag">
               {{ article.tag }}
@@ -44,7 +45,12 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
+import { useInsideMotion } from "../composables/useInsideMotion";
+import "../assets/insideInteractions.css";
+
+const page = ref(null);
+useInsideMotion(page);
 import { RouterLink } from "vue-router";
 import { insideArticles } from "../data/insideArticles";
 
