@@ -70,7 +70,7 @@
 </template>
 
 <script setup>
-import { computed, ref, nextTick, onBeforeUnmount } from "vue";
+import { computed, ref, nextTick, onBeforeUnmount, onMounted } from "vue";
 import { useInsideMotion } from "../composables/useInsideMotion";
 import "../assets/insideInteractions.css";
 
@@ -78,49 +78,29 @@ const page = ref(null);
 useInsideMotion(page);
 import { RouterLink } from "vue-router";
 import { insideArticles } from "../data/insideArticles";
+import { auth } from "../firebase";
+import { getInsideDeviceId, selectInsideArticles, getInsideDateKey } from "../utils/insideSelection";
 
-const ARTICLES_PER_DAY = 5;
-
-const getMonday = (date) => {
-  const monday = new Date(date);
-  monday.setHours(0, 0, 0, 0);
-  const day = monday.getDay() || 7;
-  monday.setDate(monday.getDate() - day + 1);
-  return monday;
-};
-
-const createSeed = (value) => [...value].reduce(
-  (seed, character) => ((seed * 31) + character.charCodeAt(0)) >>> 0,
-  0,
-);
-
-const shuffleForWeek = (items, weekKey) => {
-  let seed = createSeed(weekKey);
-  const random = () => {
-    seed = (seed + 0x6d2b79f5) >>> 0;
-    let result = seed;
-    result = Math.imul(result ^ (result >>> 15), result | 1);
-    result ^= result + Math.imul(result ^ (result >>> 7), result | 61);
-    return ((result ^ (result >>> 14)) >>> 0) / 4294967296;
-  };
-
-  const shuffled = [...items];
-  for (let index = shuffled.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(random() * (index + 1));
-    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
-  }
-  return shuffled;
-};
-
-const dailyArticles = computed(() => {
-  const today = new Date();
-  const monday = getMonday(today);
-  const dayIndex = Math.floor((today - monday) / 86_400_000);
-  const weekKey = monday.toISOString().slice(0, 10);
-  const weeklyArticles = shuffleForWeek(insideArticles, weekKey);
-  const start = dayIndex * ARTICLES_PER_DAY;
-
-  return weeklyArticles.slice(start, start + ARTICLES_PER_DAY);
+const deviceId = getInsideDeviceId();
+const today = ref(new Date());
+const dailyArticles = computed(() => selectInsideArticles(
+  insideArticles, `${auth.currentUser?.uid || "guest"}:${deviceId}`, today.value,
+));
+// Refresh the daily set when returning to a tab or crossing midnight.
+function refreshDay() {
+  if (getInsideDateKey(today.value) === getInsideDateKey(new Date())) return;
+  closeReader();
+  today.value = new Date();
+  activeIndex.value = 0;
+}
+let dayTimer;
+onMounted(() => {
+  dayTimer = window.setInterval(refreshDay, 60_000);
+  window.addEventListener("focus", refreshDay);
+});
+onBeforeUnmount(() => {
+  window.clearInterval(dayTimer);
+  window.removeEventListener("focus", refreshDay);
 });
 
 const reader = ref(null);
