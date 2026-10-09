@@ -45,7 +45,7 @@ const sendMessage = async () => {
   await scrollToBottom();
 
   try {
-    const llmMessages = messages.value.map((m) => ({
+    const llmMessages = messages.value.filter((m) => !m.isError).map((m) => ({
         role: m.from === "user" ? "user" : "assistant",
         content: m.text,
       }));
@@ -58,7 +58,7 @@ const sendMessage = async () => {
 
     const data = await response.json();
     if (!response.ok || !data.reply) {
-      throw new Error(data?.error || "Chat service is unavailable");
+      throw new Error(data?.code || data?.error || "Chat service is unavailable");
     }
 
     messages.value.push({
@@ -76,7 +76,11 @@ const sendMessage = async () => {
     const message = error instanceof Error ? error.message : "";
     const text = message === "No reliable sources were found for this question"
       ? "ตอนนี้เรายังหาแหล่งข้อมูลที่น่าเชื่อถือพอสำหรับคำถามนี้ไม่ได้\nเลยไม่อยากเดาคำตอบให้คุณนะคะ 🤍"
-      : message === "Chat service is not configured"
+      : message === "CHAT_CREDITS_EXHAUSTED"
+        ? "ตอนนี้ระบบตอบแชตยังไม่พร้อมใช้งาน\nโปรดกลับมาลองใหม่ภายหลังนะคะ 🤍"
+      : message === "CHAT_RATE_LIMITED"
+        ? "ตอนนี้มีการใช้งานแชตจำนวนมาก\nรอสักครู่แล้วลองส่งอีกครั้งนะคะ 🤍"
+      : message === "Chat service is not configured" || message === "CHAT_CONFIGURATION_ERROR"
         ? "ตอนนี้ระบบค้นข้อมูลยังไม่ได้ตั้งค่าเรียบร้อย\nโปรดลองใหม่อีกครั้งในภายหลังนะคะ 🤍"
         : "ขอโทษนะคะ เหมือนการเชื่อมต่อจะสะดุดนิดหน่อย\nแต่เรายังอยู่ตรงนี้นะคะ 🤍";
 
@@ -87,6 +91,7 @@ const sendMessage = async () => {
       text,
       time: "เมื่อสักครู่",
       sources: [],
+      isError: true,
     });
   } finally {
     isTyping.value = false;

@@ -52,7 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "A user message is required" });
     }
 
-    if (!process.env.HF_API_KEY || !process.env.TAVILY_API_KEY) {
+    if ((!process.env.HF_API_KEY && !process.env.GROQ_API_KEY) || !process.env.TAVILY_API_KEY) {
       return res.status(500).json({
         error: "Chat service is not configured",
       });
@@ -132,31 +132,75 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 ${sourceContext}`,
     };
 
-    const hfRes = await fetch(
-      "https://router.huggingface.co/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.HF_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "meta-llama/Llama-3.1-8B-Instruct",
-          messages: [
-            systemMessage,
-            ...conversation.filter((message) => message.role !== "system"),
-          ],
-          temperature: 0.3,
-          max_tokens: 1_024,
-        }),
-      }
-    );
+    const generationMessages = [
+      systemMessage,
+      ...conversation.filter((message) => message.role !== "system"),
+    ];
+    const callGroq = () => fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: process.env.GROQ_MODEL || "openai/gpt-oss-20b",
+        messages: generationMessages,
+        temperature: 0.3,
+        max_completion_tokens: 2_048,
+        reasoning_effort: "low",
+      }),
+    });
 
-    const data = await hfRes.json();
+    // Retry once with Groq only for exhausted HF credits; both calls share context.
+    let provider = process.env.HF_API_KEY ? "HF" : "Groq";
+    let hfRes = process.env.HF_API_KEY
+      ? await fetch("https://router.huggingface.co/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.HF_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "meta-llama/Llama-3.1-8B-Instruct",
+            messages: generationMessages,
+            temperature: 0.3,
+            max_tokens: 1_024,
+          }),
+        })
+      : await callGroq();
+    let data = await hfRes.json();
+    const hfError = typeof data?.error === "string" ? data.error : data?.error?.message;
+    const exhausted = !hfRes.ok && (hfRes.status === 402 ||
+      (typeof hfError === "string" && /no remaining credits|insufficient credits/i.test(hfError)));
+    if (provider === "HF" && exhausted && process.env.GROQ_API_KEY) {
+      console.info("HF credits exhausted; using Groq fallback");
+      provider = "Groq";
+      hfRes = await callGroq();
+      data = await hfRes.json();
+    }
 
     if (!hfRes.ok) {
-      console.error("HF ERROR:", data);
-      return res.status(500).json(data);
+      console.error("Chat provider request failed", { provider, status: hfRes.status });
+      const providerMessage = typeof data?.error === "string" ? data.error : "";
+      if (hfRes.status === 402 || /no remaining credits|insufficient credits/i.test(providerMessage)) {
+        return res.status(503).json({
+          code: "CHAT_CREDITS_EXHAUSTED",
+          error: "Chat service credits are exhausted",
+        });
+      }
+      if (hfRes.status === 401 || hfRes.status === 403) {
+        return res.status(503).json({
+          code: "CHAT_CONFIGURATION_ERROR",
+          error: "Chat service is not configured",
+        });
+      }
+      if (hfRes.status === 429) {
+        return res.status(429).json({
+          code: "CHAT_RATE_LIMITED",
+          error: "Chat service is busy",
+        });
+      }
+      return res.status(502).json({ error: "Chat service is unavailable" });
     }
 
     const reply = data?.choices?.[0]?.message?.content;
