@@ -120,9 +120,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       content: `คุณคือ FUNGJAI พื้นที่ปลอดภัย รับฟังอย่างอ่อนโยน ไม่ตัดสิน และไม่ให้คำสั่งทางการแพทย์
 
 รูปแบบคำตอบ:
-- ใช้ภาษาไทยที่เป็นธรรมชาติ สะกดคำให้ถูก และเขียนเป็นประโยคสมบูรณ์ อ่านง่ายบนมือถือ
+- ห้ามปนอักษรซีริลลิกในคำไทย เช่น “กลับมาฟокус” ให้ใช้ “กลับมามีสมาธิ”
+- ใช้ภาษาไทยสนทนาที่สุภาพและเป็นธรรมชาติ ประโยคสั้น อ่านง่ายบนมือถือ ไม่แปลตรงตัว เช่น ใช้ “ลองหายใจช้า ๆ” แทน “ทำการหายใจ” และ “อยากชวนให้ลอง” แทน “ขอให้คุณรู้สึกว่า”
+- ใช้คำไทยเมื่อเหมาะสม เช่น “กลับมามีสมาธิ” แทน “กลับมาโฟกัส” ไม่ทักทายซ้ำทุกคำตอบ และไม่ปิดด้วยประโยคสำเร็จรูปยาว ๆ
+- เขียนเป็นข้อความธรรมดา ห้ามใช้ Markdown ตัวหนา ** หรือหัวข้อ # หากมีรายการ ใช้ 1. 2. 3. ได้
+- หลีกเลี่ยงข้อความรับประกัน เช่น “อารมณ์ดีขึ้นได้อย่างรวดเร็ว” ใช้ภาษาที่ไม่สรุปผลแทนผู้ใช้
 - เริ่มด้วยการรับฟังสั้น ๆ แล้วเสนอสิ่งที่ลองทำได้ไม่เกิน 3 ข้อ ไม่เกินประมาณ 200 คำ โดยไม่วินิจฉัยหรือรับประกันผล
 - สรุปสาระจากแหล่งข้อมูลด้วยภาษาของคุณเอง ห้ามคัดลอกชื่อหน้าเว็บ หัวข้อบทความ ชื่อสถาบัน หรือ URL มาแทรกกลางคำแนะนำ เว้นแต่ผู้ใช้ถามถึงแหล่งข้อมูลโดยตรง
+- ใช้เลขอ้างอิงตั้งแต่ [1] ถึง [${sources.length}] เท่านั้น ห้ามใช้เลขจากประวัติคำตอบเก่าหากไม่มีในแหล่งข้อมูลครั้งนี้
 - ใส่เฉพาะเลขอ้างอิง เช่น [1] ท้ายประโยคที่เกี่ยวข้อง ระบบจะแสดงชื่อและลิงก์แหล่งข้อมูลใต้คำตอบให้อยู่แล้ว ไม่ต้องเขียนรายการแหล่งข้อมูลซ้ำ
 - ก่อนส่งคำตอบ ตรวจการสะกด คำซ้ำ และความต่อเนื่องของประโยค แก้ข้อความที่ผิดรูปหรือไม่ชัดเจน โดยรักษาความหมายและเลขอ้างอิงไว้
 
@@ -136,7 +141,7 @@ ${sourceContext}`,
       systemMessage,
       ...conversation.filter((message) => message.role !== "system"),
     ];
-    const callGroq = () => fetch("https://api.groq.com/openai/v1/chat/completions", {
+    const callGroq = (messages = generationMessages) => fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
@@ -144,8 +149,8 @@ ${sourceContext}`,
       },
       body: JSON.stringify({
         model: process.env.GROQ_MODEL || "openai/gpt-oss-20b",
-        messages: generationMessages,
-        temperature: 0.3,
+        messages,
+        temperature: 0.2,
         max_completion_tokens: 2_048,
         reasoning_effort: "low",
       }),
@@ -153,8 +158,7 @@ ${sourceContext}`,
 
     // Retry once with Groq only for exhausted HF credits; both calls share context.
     let provider = process.env.HF_API_KEY ? "HF" : "Groq";
-    let hfRes = process.env.HF_API_KEY
-      ? await fetch("https://router.huggingface.co/v1/chat/completions", {
+    const callHF = (messages = generationMessages) => fetch("https://router.huggingface.co/v1/chat/completions", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${process.env.HF_API_KEY}`,
@@ -162,12 +166,12 @@ ${sourceContext}`,
           },
           body: JSON.stringify({
             model: "meta-llama/Llama-3.1-8B-Instruct",
-            messages: generationMessages,
-            temperature: 0.3,
+            messages,
+            temperature: 0.2,
             max_tokens: 1_024,
           }),
-        })
-      : await callGroq();
+        });
+    let hfRes = process.env.HF_API_KEY ? await callHF() : await callGroq();
     let data = await hfRes.json();
     const hfError = typeof data?.error === "string" ? data.error : data?.error?.message;
     const exhausted = !hfRes.ok && (hfRes.status === 402 ||
@@ -203,11 +207,27 @@ ${sourceContext}`,
       return res.status(502).json({ error: "Chat service is unavailable" });
     }
 
-    const reply = data?.choices?.[0]?.message?.content;
-    if (typeof reply !== "string" || !reply.trim()) {
+    let reply = data?.choices?.[0]?.message?.content;
+    const hasInvalidCitation = (text: string) => [...text.matchAll(/\[(\d+)\]/g)]
+      .some((match) => Number(match[1]) < 1 || Number(match[1]) > sources.length);
+    const hasCyrillic = (text: string) => /\p{Script=Cyrillic}/u.test(text);
+    if (typeof reply === "string" && (hasInvalidCitation(reply) || hasCyrillic(reply))) {
+      // One bounded repair on the provider that answered; never invent a replacement citation.
+      const repairMessages: ChatMessage[] = [
+        ...generationMessages,
+        { role: "assistant", content: reply },
+        { role: "user", content: `ตรวจคำตอบใหม่ เลขอ้างอิงที่ใช้ได้มีเพียง [1] ถึง [${sources.length}] ตรวจว่าแต่ละข้ออ้างมีแหล่งรองรับจริง หากไม่มีให้ตัดข้ออ้างนั้นออก ห้ามเปลี่ยนเลขแบบเดา ตรวจภาษาไทยให้เป็นธรรมชาติ แก้คำที่มีอักษรซีริลลิกปนให้เป็นคำไทยสมบูรณ์ เช่น “กลับมาฟокус” เป็น “กลับมามีสมาธิ” ห้ามลบอักษรจนคำขาด รักษาความหมายและไม่เพิ่มข้อเท็จจริง ส่งเฉพาะคำตอบที่แก้แล้วโดยไม่มีอักษรซีริลลิก` },
+      ];
+      const repairRes = provider === "Groq" ? await callGroq(repairMessages) : await callHF(repairMessages);
+      const repairData = await repairRes.json();
+      reply = repairRes.ok ? repairData?.choices?.[0]?.message?.content : null;
+    }
+    if (typeof reply !== "string" || !reply.trim() || hasInvalidCitation(reply) || hasCyrillic(reply)) {
       return res.status(502).json({ error: "Chat service returned no reply" });
     }
 
+    // The UI renders plain text, so remove only formatting delimiters, not wording.
+    reply = reply.replace(/\*\*([^*\n]+)\*\*/g, "$1").replace(/^#{1,6}\s+/gm, "").trim();
     return res.status(200).json({ reply, sources });
   } catch (err: any) {
     console.error(err);
