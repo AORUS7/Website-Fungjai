@@ -1,5 +1,6 @@
 <script setup>
 import { ref, nextTick } from "vue";
+import { immediateSupportReply } from "../lib/chat-support.mjs";
 
 const messages = ref([
   {
@@ -50,15 +51,33 @@ const sendMessage = async () => {
         content: m.text,
       }));
 
-    const response = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: llmMessages }),
-    });
-
-    const data = await response.json();
-    if (!response.ok || !data.reply) {
-      throw new Error(data?.code || data?.error || "Chat service is unavailable");
+    // Resolve immediate support locally, including when /api/chat cannot be reached.
+    const immediate = immediateSupportReply(llmMessages);
+    let data;
+    if (immediate) {
+      data = { reply: immediate, sources: [] };
+    } else {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 45_000);
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: llmMessages }),
+          signal: controller.signal,
+        });
+        data = await response.json();
+        if (!response.ok || !data.reply) {
+          throw new Error(data?.code || data?.error || "Chat service is unavailable");
+        }
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          throw new Error("CHAT_TIMEOUT");
+        }
+        throw error;
+      } finally {
+        clearTimeout(timeout);
+      }
     }
 
     messages.value.push({
@@ -78,10 +97,12 @@ const sendMessage = async () => {
       ? "ตอนนี้เรายังหาแหล่งข้อมูลที่น่าเชื่อถือพอสำหรับคำถามนี้ไม่ได้\nเลยไม่อยากเดาคำตอบให้คุณนะคะ 🤍"
       : message === "CHAT_CITATIONS_MISSING"
         ? "ตอนนี้เรายังตรวจสอบแหล่งข้อมูลสำหรับคำแนะนำนี้ได้ไม่ครบ\nขอให้ลองส่งอีกครั้งนะคะ เราไม่อยากให้คำแนะนำที่ยังไม่มีข้อมูลรองรับค่ะ 🤍"
+      : message === "CHAT_TIMEOUT"
+        ? "คำตอบใช้เวลานานเกินไป จึงหยุดรอให้แล้วค่ะ\nคุณยังพิมพ์ข้อความต่อได้ และลองส่งคำถามใหม่ภายหลังได้ค่ะ 🤍"
       : message === "CHAT_CREDITS_EXHAUSTED"
         ? "ตอนนี้ระบบตอบแชตยังไม่พร้อมใช้งาน\nโปรดกลับมาลองใหม่ภายหลังนะคะ 🤍"
       : message === "CHAT_RATE_LIMITED"
-        ? "ตอนนี้มีการใช้งานแชตจำนวนมาก\nรอสักครู่แล้วลองส่งอีกครั้งนะคะ 🤍"
+        ? "ตอนนี้บริการตอบแชตถึงขีดจำกัดการใช้งานชั่วคราว\nจึงยังตอบคำถามเพิ่มเติมไม่ได้ หากอยากเล่าความรู้สึกสั้น ๆ เรายังรับฟังได้ค่ะ 🤍"
       : message === "Chat service is not configured" || message === "CHAT_CONFIGURATION_ERROR"
         ? "ตอนนี้ระบบค้นข้อมูลยังไม่ได้ตั้งค่าเรียบร้อย\nโปรดลองใหม่อีกครั้งในภายหลังนะคะ 🤍"
         : "ขอโทษนะคะ เหมือนการเชื่อมต่อจะสะดุดนิดหน่อย\nแต่เรายังอยู่ตรงนี้นะคะ 🤍";
@@ -195,7 +216,6 @@ const handleKeydown = (e) => {
                 class="chat-input"
                 placeholder="อยากเล่าอะไรให้ FUNGJAI ฟังบ้างคะ..."
                 rows="2"
-                :disabled="isTyping"
                 @keydown="handleKeydown"
                 @touchstart.stop
                 @touchmove.stop

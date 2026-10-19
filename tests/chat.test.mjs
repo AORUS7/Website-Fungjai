@@ -1,19 +1,25 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import handler from '../api/chat.ts';
+import { immediateSupportReply } from '../src/lib/chat-support.mjs';
 
 const draft = 'ลองแบ่งงานเป็นช่วงสั้น ๆ และพักสายตาระหว่างช่วง';
 const evidence = [1, 2, 3].map((n) => ({ title: `Evidence ${n}`, url: `https://example.org/evidence-${n}`, content: `Evidence excerpt ${n}` }));
+let keyCounter = 0;
 const completion = (content) => ({ choices: [{ message: { content } }] });
 
-async function run(steps, { hf = false, text = 'ผู้ใช้เล่าว่ามีปัญหาเรื่องเพื่อน', unconfigured = false } = {}) {
+async function run(steps, { hf = false, text = 'ผู้ใช้เล่าว่ามีปัญหาเรื่องเพื่อน', unconfigured = false, history = [], gemini = false, openrouter = false, groq = true, order = 'hf,groq,gemini,openrouter' } = {}) {
   const originalFetch = globalThis.fetch;
-  const keys = ['HF_API_KEY', 'GROQ_API_KEY', 'TAVILY_API_KEY'];
+  const keys = ['HF_API_KEY', 'GROQ_API_KEY', 'TAVILY_API_KEY', 'GEMINI_API_KEY', 'OPENROUTER_API_KEY', 'AI_PROVIDER_ORDER'];
   const previous = keys.map((key) => process.env[key]);
-  delete process.env.HF_API_KEY;
-  if (hf) process.env.HF_API_KEY = 'test-only';
-  process.env.GROQ_API_KEY = 'test-only';
-  process.env.TAVILY_API_KEY = 'test-only';
+  keys.forEach((key) => delete process.env[key]);
+  const fakeKey = `test-only-${++keyCounter}`;
+  if (hf) process.env.HF_API_KEY = fakeKey;
+  if (groq) process.env.GROQ_API_KEY = fakeKey;
+  if (gemini) process.env.GEMINI_API_KEY = fakeKey;
+  if (openrouter) process.env.OPENROUTER_API_KEY = fakeKey;
+  process.env.TAVILY_API_KEY = fakeKey;
+  process.env.AI_PROVIDER_ORDER = order;
   if (unconfigured) keys.forEach((key) => delete process.env[key]);
   const calls = [];
   globalThis.fetch = async (url, options) => {
@@ -28,6 +34,7 @@ async function run(steps, { hf = false, text = 'ผู้ใช้เล่า�
   try {
     await handler({ method: 'POST', body: { messages: [
       { role: 'assistant', content: 'คำตอบเก่าที่อ้างอิง [9]' },
+      ...history,
       { role: 'user', content: text },
     ] } }, res);
     assert.equal(calls.length, steps.length);
@@ -150,4 +157,98 @@ test('thanks combined with a factual question cannot bypass citation validation'
   });
   assert.equal(result.code, 502);
   assert.equal(result.payload.code, 'CHAT_CITATIONS_MISSING');
+});
+
+
+test('self-harm requests receive immediate safety support without API credentials or retrieval', async () => {
+  for (const text of ['ขอวิธีฆ่าตัวตายค่ะ', 'อยากตาย', 'ไม่อยากอยู่แล้ว', 'อยากทำร้ายตัวเอง', 'อยากทําร้ายตัวเอง', 'I want to kill myself']) {
+    const result = await run([], { text, unconfigured: true });
+    assert.equal(result.code, 200, text);
+    assert.deepEqual(result.payload.sources, []);
+    assert.ok(result.payload.reply.includes('ปลอดภัย'));
+    assert.ok(result.payload.reply.includes('ห้องฉุกเฉิน'));
+    assert.ok(!/การเชื่อมต่อ|CHAT_|https?:|\[\d+\]/.test(result.payload.reply));
+    assert.equal(result.calls.length, 0);
+  }
+});
+
+test('a vague follow-up to a self-harm request retains safety context', async () => {
+  const history = [{ role: 'user', content: 'ขอวิธีฆ่าตัวตายค่ะ' }, { role: 'assistant', content: 'ตอนนี้คุณปลอดภัยไหมคะ' }];
+  const result = await run([], { text: 'บอกได้ไหมคะ', history, unconfigured: true });
+  assert.equal(result.code, 200);
+  assert.ok(result.payload.reply.includes('จะไม่บอกวิธีทำร้ายตัวเอง'));
+});
+
+test('the client-shared support handler is usable without network access', () => {
+  const reply = immediateSupportReply([{ role: 'user', content: 'ขอวิธีฆ่าตัวตายค่ะ' }]);
+  assert.ok(reply.includes('คนที่ไว้ใจได้'));
+  assert.ok(reply.includes('อยู่คนเดียวไหม'));
+});
+
+test('sadness like both screenshot messages receives listening without provider calls', async () => {
+  for (const text of ['เศร้าค่ะ', 'เศร้ามาก', 'เครียดมาก', 'เหงาค่ะ', 'ท้อมาก']) {
+    const result = await run([], { text, unconfigured: true });
+    assert.equal(result.code, 200);
+    assert.deepEqual(result.payload.sources, []);
+    assert.ok(!/ขีดจำกัด|ใช้งานแชตจำนวนมาก|การเชื่อมต่อ/.test(result.payload.reply));
+    assert.equal(result.calls.length, 0);
+  }
+});
+
+test('past self-harm context does not force unrelated factual questions into the fallback', async () => {
+  const result = await run([model(draft), search, model('คำแนะนำ [1]')], {
+    text: 'ควรแบ่งเวลาเรียนอย่างไร', history: [{ role: 'user', content: 'อยากตาย' }],
+  });
+  assert.equal(result.code, 200);
+  assert.equal(result.calls.length, 3);
+});
+
+test('HF rate limiting falls back once to the configured alternative', async () => {
+  const result = await run([
+    { service: 'huggingface', status: 429, data: { error: 'Rate limited' } },
+    model(draft), search, model('คำแนะนำ [1]'),
+  ], { hf: true });
+  assert.equal(result.code, 200);
+  assert.equal(result.calls.filter((call) => call.url.includes('huggingface')).length, 1);
+});
+
+test('rate limiting during citation repair preserves the actual error code', async () => {
+  const result = await run([model(draft), search, model('คำแนะนำยังไม่มีอ้างอิง'),
+    { service: 'groq', status: 429, data: { error: 'Rate limited' } },
+  ]);
+  assert.equal(result.code, 429);
+  assert.equal(result.payload.code, 'CHAT_RATE_LIMITED');
+});
+
+
+test('Groq quota failure switches to Gemini and preserves final citation mapping', async () => {
+  const result = await run([
+    { service: 'groq', status: 429, data: { error: 'Rate limited' } },
+    { service: 'googleapis', data: completion(draft) }, search,
+    { service: 'googleapis', data: completion('คำแนะนำ [3]') },
+  ], { gemini: true, order: 'groq,gemini' });
+  assert.equal(result.code, 200);
+  assert.equal(result.payload.reply, 'คำแนะนำ [1]');
+  assert.deepEqual(result.payload.sources.map((s) => s.url), [evidence[2].url]);
+  assert.equal(result.calls.filter((c) => c.url.includes('groq')).length, 1);
+});
+
+test('OpenRouter alone is a valid configuration and always uses the free route', async () => {
+  const result = await run([
+    { service: 'openrouter', data: completion(draft) }, search,
+    { service: 'openrouter', data: completion('คำแนะนำ [1]') },
+  ], { groq: false, openrouter: true });
+  assert.equal(result.code, 200);
+  for (const call of result.calls.filter((c) => c.url.includes('openrouter'))) assert.equal(call.body.model, 'openrouter/free');
+});
+
+test('failing over during final generation uses the same source context', async () => {
+  const result = await run([
+    model(draft), search,
+    { service: 'groq', status: 429, data: { error: 'Rate limited' } },
+    { service: 'googleapis', data: completion('คำแนะนำ [2]') },
+  ], { gemini: true, order: 'groq,gemini' });
+  assert.equal(result.code, 200);
+  assert.deepEqual(result.calls[2].body.messages, result.calls[3].body.messages);
+  assert.deepEqual(result.payload.sources.map((s) => s.url), [evidence[1].url]);
 });

@@ -1,4 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { immediateSupportReply } from "../src/lib/chat-support.mjs";
+import { createChatProviderRouter } from "../server/chat-providers.mjs";
 
 type ChatMessage = {
   role: "system" | "user" | "assistant";
@@ -78,12 +80,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "A user message is required" });
     }
 
+    const support = immediateSupportReply(messages.slice(-MAX_MESSAGES));
+    if (support) {
+      return res.status(200).json({ reply: support, sources: [] });
+    }
+
     const smallTalk = conversationalReply(latestUserMessage);
     if (smallTalk) {
       return res.status(200).json({ reply: smallTalk, sources: [] });
     }
 
-    if ((!process.env.HF_API_KEY && !process.env.GROQ_API_KEY) || !process.env.TAVILY_API_KEY) {
+    const router = createChatProviderRouter(process.env);
+    if (!router.hasProviders || !process.env.TAVILY_API_KEY) {
       return res.status(500).json({
         error: "Chat service is not configured",
       });
@@ -96,52 +104,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ? { ...message, content: message.content.replace(/\[\d+\]/g, "") }
         : message);
 
-    const callGroq = (messages: ChatMessage[]) => fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: process.env.GROQ_MODEL || "openai/gpt-oss-20b",
-        messages,
-        temperature: 0.2,
-        max_completion_tokens: 2_048,
-        reasoning_effort: "low",
-      }),
-    });
-
-    const callHF = (messages: ChatMessage[]) => fetch("https://router.huggingface.co/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.HF_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "meta-llama/Llama-3.1-8B-Instruct",
-        messages,
-        temperature: 0.2,
-        max_tokens: 1_024,
-      }),
-    });
-    let provider = process.env.HF_API_KEY ? "HF" : "Groq";
+    let provider = router.provider;
     const complete = async (messages: ChatMessage[]) => {
-      let response = provider === "HF" ? await callHF(messages) : await callGroq(messages);
-      let data = await response.json();
-      const error = typeof data?.error === "string" ? data.error : data?.error?.message;
-      const exhausted = !response.ok && (response.status === 402 ||
-        (typeof error === "string" && /no remaining credits|insufficient credits/i.test(error)));
-      if (provider === "HF" && exhausted && process.env.GROQ_API_KEY) {
-        console.info("HF credits exhausted; using Groq fallback");
-        provider = "Groq";
-        response = await callGroq(messages);
-        data = await response.json();
-      }
-      return { response, data };
+      const result = await router.complete(messages);
+      provider = result.provider;
+      return result;
     };
     const providerError = (hfRes: Response, data: any) => {
       console.error("Chat provider request failed", { provider, status: hfRes.status });
-      const providerMessage = typeof data?.error === "string" ? data.error : "";
+      const providerMessage = typeof data?.error === "string" ? data.error : data?.error?.message || "";
       if (hfRes.status === 402 || /no remaining credits|insufficient credits/i.test(providerMessage)) {
         return res.status(503).json({
           code: "CHAT_CREDITS_EXHAUSTED",
@@ -194,6 +165,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         include_answer: false,
         include_raw_content: false,
       }),
+      signal: AbortSignal.timeout(10_000),
     });
 
     const searchData = await searchRes.json();
@@ -283,9 +255,9 @@ ${sourceContext}`,
         { role: "assistant", content: reply },
         { role: "user", content: `ตรวจคำตอบใหม่ หากไม่มีเลขอ้างอิง ต้องตรวจทุกคำแนะนำและข้อเท็จจริงกับเนื้อหาแหล่งข้อมูลรอบปัจจุบันก่อน แล้วใส่เลขท้ายประโยคที่มีหลักฐานรองรับจริง โดยต้องมีอย่างน้อยหนึ่งเลขอ้างอิง ห้ามเพียงนำเลขหรือลิงก์มาต่อท้ายคำตอบเดิม ห้ามใช้เลขจากคำตอบก่อนหน้า หากไม่มีหลักฐานรองรับให้ตัดคำแนะนำนั้นออก เลขอ้างอิงที่ใช้ได้มีเพียง [1] ถึง [${sources.length}] ตรวจว่าแต่ละข้ออ้างมีแหล่งรองรับจริง หากไม่มีให้ตัดข้ออ้างนั้นออก ห้ามเปลี่ยนเลขแบบเดา ตรวจภาษาไทยให้เป็นธรรมชาติ แก้คำที่มีอักษรซีริลลิกปนให้เป็นคำไทยสมบูรณ์ เช่น “กลับมาฟокус” เป็น “กลับมามีสมาธิ” ห้ามลบอักษรจนคำขาด รักษาความหมายและไม่เพิ่มข้อเท็จจริง ส่งเฉพาะคำตอบที่แก้แล้วโดยไม่มีอักษรซีริลลิก` },
       ];
-      const repairRes = provider === "Groq" ? await callGroq(repairMessages) : await callHF(repairMessages);
-      const repairData = await repairRes.json();
-      reply = repairRes.ok ? repairData?.choices?.[0]?.message?.content : null;
+      const repairResult = await complete(repairMessages);
+      if (!repairResult.response.ok) return providerError(repairResult.response, repairResult.data);
+      reply = repairResult.data?.choices?.[0]?.message?.content;
     }
     if (typeof reply !== "string" || !reply.trim() || hasInvalidCitation(reply) || hasCyrillic(reply)) {
       return res.status(502).json({ error: "Chat service returned no reply" });
