@@ -25,3 +25,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Original HEVC sources are kept locally; several exceed GitHub's 100 MiB limit.
+# The Podcast catalog uses the H.264 copies in public/video/web instead.
+/public/video/loves/*.mov
+/public/video/friends/*.mov
+/public/video/family/*.mov
+/public/video/study/*.mov
+/public/video/works/*.mov

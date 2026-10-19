@@ -22,7 +22,7 @@
             :class="{ active: activeCategory === c.key }"
             @click="activeCategory = c.key"
           >
-            {{ c.label }}
+            {{ c.label }} · {{ episodes.filter((ep) => ep.category === c.key).length }}
           </button>
         </div>
 
@@ -44,19 +44,33 @@
     </section>
 
     <!-- VIDEO DIALOG -->
-    <dialog ref="videoDialog" class="video-dialog">
-      <button class="close-btn" @click="closeVideo">✕</button>
+    <dialog ref="videoDialog" class="video-dialog" aria-label="ฟังพอดแคสต์" @cancel.prevent="closeVideo" @close="resetVideo">
+      <button class="close-btn" aria-label="ปิดพอดแคสต์" @click="closeVideo">✕</button>
 
       <div class="video-wrapper">
         <video
-          v-if="activeVideo"
-          :key="activeVideo"
+          v-if="activeVideo && activeEpisode?.kind !== 'audio'"
+          :key="activeEpisode.id"
           :src="activeVideo"
+          preload="metadata"
           autoplay
           controls
           playsinline
           @ended="handleVideoEnd"
+          @error="handleMediaError"
         ></video>
+
+        <div v-if="activeVideo && activeEpisode?.kind === 'audio'" class="audio-panel">
+          <span aria-hidden="true">🎧</span>
+          <h3>{{ activeEpisode.title }}</h3>
+          <p>ตอนนี้เป็นพอดแคสต์เสียง</p>
+          <audio :key="activeEpisode.id" :src="activeVideo" autoplay controls preload="metadata"
+            @ended="handleVideoEnd" @error="handleMediaError"></audio>
+        </div>
+        <div v-if="mediaError" class="media-error" role="alert">
+          <p>{{ mediaError }}</p>
+          <a :href="activeVideo" target="_blank" rel="noopener">เปิดไฟล์โดยตรง</a>
+        </div>
 
         <!-- INTERACTIVE OVERLAY -->
         <div v-if="showQuestion" class="overlay">
@@ -92,6 +106,7 @@
 
 <script setup>
 import { ref, computed } from "vue";
+import mediaCatalog from "../data/podcast-media.json";
 
 /* ---------------- CATEGORY ---------------- */
 
@@ -107,68 +122,35 @@ const activeCategory = ref("love");
 
 /* ---------------- EPISODES ---------------- */
 
-const episodes = [
-  {
-    id: 1,
-    category: "love",
-    title: "รักใครสักคน แต่ลืมรักตัวเอง",
-    desc: "เมื่อความรักทำให้เราอ่อนล้า",
-    video: "/video/love.mp4",
-    question: "หลังดูคลิปนี้ คุณอยากทำอะไรต่อ?",
-    answers: [
-      { text: "อยากฮีลตัวเอง", nextCategory: "work" },
-      { text: "อยากฟังเรื่องความรักต่อ", nextCategory: "love" },
-    ],
-  },
-  {
-    id: 2,
-    category: "friend",
-    title: "เพื่อนที่ค่อย ๆ หายไป",
-    desc: "ความสัมพันธ์ที่เปลี่ยนไปตามเวลา",
-    video: "/video/friend.mp4",
-    question: "คุณรู้สึกแบบไหน?",
-    answers: [
-      { text: "อยากเข้าใจตัวเอง", nextCategory: "work" },
-      { text: "อยากฟังเรื่องครอบครัว", nextCategory: "family" },
-    ],
-  },
-  {
-    id: 3,
-    category: "family",
-    title: "บ้านที่กลับไปแล้วไม่เหมือนเดิม",
-    desc: "ความรู้สึกที่พูดกับใครไม่ได้",
-    video: "/video/family.mp4",
-    question: "อยากไปต่อทางไหน?",
-    answers: [
-      { text: "อยากฮีลใจ", nextCategory: "work" },
-      { text: "อยากฟังเรื่องเพื่อน", nextCategory: "friend" },
-    ],
-  },
-  {
-    id: 4,
-    category: "study",
-    title: "เหนื่อยกับการเรียน แต่ต้องฝืนไหว",
-    desc: "แรงกดดันที่ไม่มีใครเห็น",
-    video: "/video/study.mp4",
-    question: "คุณต้องการอะไรตอนนี้?",
-    answers: [
-      { text: "พักใจ", nextCategory: "love" },
-      { text: "ฟังเรื่องการทำงาน", nextCategory: "work" },
-    ],
-  },
-  {
-    id: 5,
-    category: "work",
-    title: "พักสมองให้ตัวเองสักหน่อย",
-    desc: "การดูแลสุขภาพความคิดไม่ใช่เรื่องเห็นแก่ตัว",
-    video: "/video/work.mp4",
-    question: "อยากฟังอะไรต่อ?",
-    answers: [
-      { text: "เรื่องความรัก", nextCategory: "love" },
-      { text: "เรื่องเพื่อน", nextCategory: "friend" },
-    ],
-  },
-];
+const episodePrompts = {
+  love: { question: "หลังดูคลิปนี้ คุณอยากทำอะไรต่อ?", answers: [
+    { text: "อยากฮีลตัวเอง", nextCategory: "work" },
+    { text: "อยากฟังเรื่องความรักต่อ", nextCategory: "love" },
+  ] },
+  friend: { question: "คุณรู้สึกแบบไหน?", answers: [
+    { text: "อยากเข้าใจตัวเอง", nextCategory: "work" },
+    { text: "อยากฟังเรื่องครอบครัว", nextCategory: "family" },
+  ] },
+  family: { question: "อยากไปต่อทางไหน?", answers: [
+    { text: "อยากฮีลใจ", nextCategory: "work" },
+    { text: "อยากฟังเรื่องเพื่อน", nextCategory: "friend" },
+  ] },
+  study: { question: "คุณต้องการอะไรตอนนี้?", answers: [
+    { text: "พักใจ", nextCategory: "love" },
+    { text: "ฟังเรื่องการทำงาน", nextCategory: "work" },
+  ] },
+  work: { question: "อยากฟังอะไรต่อ?", answers: [
+    { text: "เรื่องความรัก", nextCategory: "love" },
+    { text: "เรื่องเพื่อน", nextCategory: "friend" },
+  ] },
+};
+
+// Read the actual media catalog; never invent a filename or a missing episode.
+const episodes = mediaCatalog.map((media) => ({
+  ...episodePrompts[media.category],
+  ...media,
+  desc: `พอดแคสต์หมวด${categories.find((c) => c.key === media.category).label}${media.kind === "audio" ? " · เสียง" : ""}`,
+}));
 
 const filteredEpisodes = computed(() =>
   episodes.filter((e) => e.category === activeCategory.value)
@@ -180,6 +162,7 @@ const videoDialog = ref(null);
 const activeVideo = ref(null);
 const activeEpisode = ref(null);
 const showQuestion = ref(false);
+const mediaError = ref("");
 
 const otherEpisodes = computed(() =>
   episodes.filter((e) => e.id !== activeEpisode.value?.id)
@@ -191,14 +174,24 @@ const openVideo = (ep) => {
   activeEpisode.value = ep;
   activeVideo.value = ep.video;
   showQuestion.value = false;
-  videoDialog.value.showModal();
+  mediaError.value = "";
+  if (!videoDialog.value.open) videoDialog.value.showModal();
 };
 
-const closeVideo = () => {
+const resetVideo = () => {
   activeVideo.value = null;
   activeEpisode.value = null;
   showQuestion.value = false;
+  mediaError.value = "";
+};
+
+const closeVideo = () => {
+  resetVideo();
   videoDialog.value.close();
+};
+
+const handleMediaError = () => {
+  mediaError.value = "ไม่สามารถเล่นไฟล์นี้ได้ ลองเปิดไฟล์โดยตรงหรือเลือกตอนอื่น";
 };
 
 const handleVideoEnd = () => {
@@ -206,11 +199,11 @@ const handleVideoEnd = () => {
 };
 
 const goNext = (nextCategory) => {
-  const nextEp = episodes.find((e) => e.category === nextCategory);
+  const candidates = episodes.filter((e) => e.category === nextCategory);
+  const nextEp = candidates.find((e) => e.id !== activeEpisode.value?.id) || candidates[0];
   if (nextEp) {
-    activeEpisode.value = nextEp;
-    activeVideo.value = nextEp.video;
-    showQuestion.value = false;
+    activeCategory.value = nextCategory;
+    openVideo(nextEp);
   }
 };
 </script>
@@ -364,7 +357,7 @@ const goNext = (nextCategory) => {
 .video-dialog {
   border: none;
   padding: 0;
-  width: min(92vw, 480px);
+  width: min(92vw, 720px);
   border-radius: 28px;
   background: transparent;
   overflow: hidden;
@@ -373,13 +366,19 @@ const goNext = (nextCategory) => {
 .video-wrapper {
   position: relative;
   border-radius: 28px;
-  aspect-ratio: 9 / 16; 
-  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  min-height: 240px;
+  width: 100%;
+  max-height: 85dvh;
+  overflow-y: auto;
+  background: #fff5f4;
   box-shadow: 0 40px 120px rgba(255,138,128,0.25);
 }
 
 video {
   width: 100%;
+  height: 100%;
+  object-fit: contain;
   display: block;
   border-radius: 28px;
 }
@@ -394,8 +393,10 @@ video {
   backdrop-filter: blur(12px);
   background: rgba(255,245,244,0.65);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+  overflow-y: auto;
+  padding: 2.5rem 0 1rem;
   animation: fadeIn 0.4s ease;
 }
 
@@ -406,6 +407,7 @@ video {
   padding: 1.6rem;
   border-radius: 24px;
   width: 85%;
+  box-sizing: border-box;
   box-shadow: 0 25px 80px rgba(0,0,0,0.08);
   display: flex;
   flex-direction: column;
@@ -513,4 +515,20 @@ video {
     opacity: 1;
   }
 }
+
+.audio-panel {
+  min-height: 320px;
+  box-sizing: border-box;
+  padding: 4rem 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  color: #b86a64;
+}
+.audio-panel > span { font-size: 3rem; }
+.audio-panel audio { width: 100%; margin-top: 1.5rem; }
+.media-error { padding: 1.5rem; color: #9c4540; background: #fff5f4; }
+.media-error a { color: inherit; }
+@media (min-width: 768px) { .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>
