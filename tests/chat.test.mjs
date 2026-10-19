@@ -6,7 +6,7 @@ const draft = 'ลองแบ่งงานเป็นช่วงสั้�
 const evidence = [1, 2, 3].map((n) => ({ title: `Evidence ${n}`, url: `https://example.org/evidence-${n}`, content: `Evidence excerpt ${n}` }));
 const completion = (content) => ({ choices: [{ message: { content } }] });
 
-async function run(steps, { hf = false } = {}) {
+async function run(steps, { hf = false, text = 'ผู้ใช้เล่าว่ามีปัญหาเรื่องเพื่อน', unconfigured = false } = {}) {
   const originalFetch = globalThis.fetch;
   const keys = ['HF_API_KEY', 'GROQ_API_KEY', 'TAVILY_API_KEY'];
   const previous = keys.map((key) => process.env[key]);
@@ -14,6 +14,7 @@ async function run(steps, { hf = false } = {}) {
   if (hf) process.env.HF_API_KEY = 'test-only';
   process.env.GROQ_API_KEY = 'test-only';
   process.env.TAVILY_API_KEY = 'test-only';
+  if (unconfigured) keys.forEach((key) => delete process.env[key]);
   const calls = [];
   globalThis.fetch = async (url, options) => {
     const step = steps[calls.length];
@@ -27,7 +28,7 @@ async function run(steps, { hf = false } = {}) {
   try {
     await handler({ method: 'POST', body: { messages: [
       { role: 'assistant', content: 'คำตอบเก่าที่อ้างอิง [9]' },
-      { role: 'user', content: 'ผู้ใช้เล่าว่ามีปัญหาเรื่องเพื่อน' },
+      { role: 'user', content: text },
     ] } }, res);
     assert.equal(calls.length, steps.length);
     return { calls, ...res };
@@ -57,7 +58,7 @@ test('renumbers gaps and repeated citations without changing their evidence', as
 });
 
 test('never appends arbitrary sources when both attempts omit citations', async () => {
-  const result = await run([model(draft), search, model('เราอยู่ตรงนี้และพร้อมรับฟังนะคะ'), model('เราอยู่ตรงนี้และพร้อมรับฟังนะคะ')]);
+  const result = await run([model(draft), search, model('ลองแบ่งเวลาเรียนเพื่อช่วยให้มีสมาธิ'), model('ลองแบ่งเวลาเรียนเพื่อช่วยให้มีสมาธิ')]);
   assert.equal(result.code, 502);
   assert.equal(result.payload.code, 'CHAT_CITATIONS_MISSING');
   assert.equal(result.payload.sources, undefined);
@@ -120,4 +121,33 @@ test('old assistant citation numbers are removed from both draft and grounding h
     assert.ok(previous);
     assert.ok(!previous.content.includes('[9]'));
   }
+});
+
+
+test('simple greetings, thanks, acknowledgements and listening do not call AI or search', async () => {
+  for (const text of ['สวัสดี', 'สวัสดีค่ะ 🤍', 'หวัดดีครับ', 'hello!', 'ขอบคุณมากค่ะ', 'ขอบคุณที่รับฟังนะคะ', 'โอเคครับ', 'ฝันดีนะ', 'อยากระบายค่ะ', 'มีคนฟังไหม', 'วันนี้เหนื่อย']) {
+    const result = await run([], { text, unconfigured: true });
+    assert.equal(result.code, 200, text);
+    assert.deepEqual(result.payload.sources, [], text);
+    assert.ok(!/\[\d+\]|https?:|Pomodoro|4.?7.?8/.test(result.payload.reply), text);
+    assert.ok(result.payload.reply.length < 160, text);
+    assert.equal(result.calls.length, 0, text);
+  }
+});
+
+test('a greeting combined with an advice request still requires evidence', async () => {
+  const result = await run([model(draft), search, model('ลองแบ่งงานเป็นช่วงสั้น ๆ [2]')], {
+    text: 'สวัสดี เครียดเรื่องเรียน ทำยังไงดี',
+  });
+  assert.equal(result.code, 200);
+  assert.equal(result.calls.length, 3);
+  assert.deepEqual(result.payload.sources.map((s) => s.url), [evidence[1].url]);
+});
+
+test('thanks combined with a factual question cannot bypass citation validation', async () => {
+  const result = await run([model(draft), search, model('คำแนะนำที่ไม่มีอ้างอิง'), model('คำแนะนำที่ยังไม่มีอ้างอิง')], {
+    text: 'ขอบคุณค่ะ การหายใจแบบ 4-7-8 ช่วยอะไร',
+  });
+  assert.equal(result.code, 502);
+  assert.equal(result.payload.code, 'CHAT_CITATIONS_MISSING');
 });

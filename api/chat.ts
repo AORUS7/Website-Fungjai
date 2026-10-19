@@ -13,6 +13,32 @@ type Source = {
 const MAX_MESSAGES = 12;
 const MAX_MESSAGE_LENGTH = 2_000;
 
+// Only complete, simple conversational messages bypass retrieval. A greeting plus
+// a question/advice request must still go through the grounded answer pipeline.
+function conversationalReply(text: string): string | null {
+  const normalized = text.normalize("NFC").toLowerCase()
+    .replace(/[\s\p{P}\p{S}\u200d\uFE0F]/gu, "");
+  const endings = "(?:ครับ|ค่ะ|คะ|จ้า|จ้ะ|นะ|ฮะ|ค่า|ค้าบ)*";
+  const matches = (phrases: string) => new RegExp(`^(?:${phrases})${endings}$`, "u").test(normalized);
+
+  if (matches("สวัสดี|หวัดดี|ดีครับ|ดีค่ะ|ดีจ้า|อรุณสวัสดิ์|สวัสดีตอนเช้า|สวัสดีตอนเย็น|hi|hello|hey|goodmorning|goodevening")) {
+    return "สวัสดีค่ะ 🤍 วันนี้อยากเล่าอะไรให้ฟังไหมคะ";
+  }
+  if (matches("ขอบคุณ|ขอบคุณมาก|ขอบคุณมากๆ|ขอบคุณที่รับฟัง|ขอบคุณที่ฟัง|ขอบใจ|ขอบใจมาก|thanks|thankyou|thankssomuch")) {
+    return "ยินดีค่ะ 🤍 ถ้าอยากเล่าเพิ่มเติม เราพร้อมฟังนะคะ";
+  }
+  if (matches("โอเค|โอเคเลย|ได้เลย|เข้าใจแล้ว|รับทราบ|อืม|อื้ม|อื้อ|ok|okay")) {
+    return "ได้เลยค่ะ 🤍 ถ้ามีอะไรอยากเล่าเพิ่มเติม บอกเราได้เสมอนะคะ";
+  }
+  if (matches("ไปก่อน|ไปก่อนนะ|ไว้คุยกัน|ไว้คุยกันใหม่|บาย|บ๊ายบาย|ฝันดี|ราตรีสวัสดิ์|bye|goodnight")) {
+    return "ไว้คุยกันใหม่นะคะ 🤍";
+  }
+  if (matches("อยู่ไหม|มีใครอยู่ไหม|มีคนฟังไหม|พร้อมฟังไหม|อยากเล่า|อยากระบาย|ขอระบาย|ขอระบายหน่อย|แค่อยากให้ฟัง|ยังไม่อยากได้คำแนะนำ|เหนื่อยจัง|วันนี้เหนื่อย|รู้สึกไม่ดีเลย")) {
+    return "เราอยู่ตรงนี้และพร้อมฟังนะคะ 🤍 ถ้าอยากเล่าเพิ่มเติม เล่าได้ตามที่คุณสบายใจเลยค่ะ";
+  }
+  return null;
+}
+
 function isChatMessage(value: unknown): value is ChatMessage {
   if (!value || typeof value !== "object") return false;
 
@@ -50,6 +76,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!latestUserMessage) {
       return res.status(400).json({ error: "A user message is required" });
+    }
+
+    const smallTalk = conversationalReply(latestUserMessage);
+    if (smallTalk) {
+      return res.status(200).json({ reply: smallTalk, sources: [] });
     }
 
     if ((!process.env.HF_API_KEY && !process.env.GROQ_API_KEY) || !process.env.TAVILY_API_KEY) {
