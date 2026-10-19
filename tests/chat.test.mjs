@@ -56,9 +56,12 @@ test('renumbers gaps and repeated citations without changing their evidence', as
   assert.deepEqual(result.payload.sources.map((s) => s.url), [evidence[0].url, evidence[2].url]);
 });
 
-test('a final answer without citations does not display unrelated search results', async () => {
-  const result = await run([model(draft), search, model('เราอยู่ตรงนี้และพร้อมรับฟังนะคะ')]);
-  assert.deepEqual(result.payload.sources, []);
+test('never appends arbitrary sources when both attempts omit citations', async () => {
+  const result = await run([model(draft), search, model('เราอยู่ตรงนี้และพร้อมรับฟังนะคะ'), model('เราอยู่ตรงนี้และพร้อมรับฟังนะคะ')]);
+  assert.equal(result.code, 502);
+  assert.equal(result.payload.code, 'CHAT_CITATIONS_MISSING');
+  assert.equal(result.payload.sources, undefined);
+  assert.equal(result.payload.reply, undefined);
 });
 
 test('selects sources from the repaired final answer rather than the invalid original', async () => {
@@ -98,4 +101,23 @@ test('search failure does not publish the unchecked AI draft', async () => {
   const result = await run([model(draft), { service: 'tavily', status: 503, data: { error: 'Unavailable' } }]);
   assert.equal(result.code, 502);
   assert.equal(result.payload.reply, undefined);
+});
+
+
+test('repairs missing citations on a follow-up like the study advice in the screenshot', async () => {
+  const uncited = '1. แบ่งเวลาเรียนเป็นช่วงสั้น ใช้ Pomodoro 25 นาที พัก 5 นาที ช่วยให้มีสมาธิ\n2. ทำรายการงานและตั้งเป้าหมายเล็ก ๆ\n3. หาเวลาพักผ่อนและออกกำลังกาย';
+  const result = await run([model(draft), search, model(uncited), model('ลองแบ่งเวลาเรียนเป็นช่วงสั้นและพักระหว่างช่วง [2]')]);
+  assert.equal(result.code, 200);
+  assert.ok(result.calls[3].body.messages.at(-1).content.includes('หากไม่มีเลขอ้างอิง'));
+  assert.equal(result.payload.reply, 'ลองแบ่งเวลาเรียนเป็นช่วงสั้นและพักระหว่างช่วง [1]');
+  assert.deepEqual(result.payload.sources.map((s) => s.url), [evidence[1].url]);
+});
+
+test('old assistant citation numbers are removed from both draft and grounding history', async () => {
+  const result = await run([model(draft), search, model('คำแนะนำ [1]')]);
+  for (const call of [result.calls[0], result.calls[2]]) {
+    const previous = call.body.messages.find((m) => m.role === 'assistant');
+    assert.ok(previous);
+    assert.ok(!previous.content.includes('[9]'));
+  }
 });

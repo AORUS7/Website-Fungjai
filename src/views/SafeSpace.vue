@@ -76,6 +76,8 @@ const sendMessage = async () => {
     const message = error instanceof Error ? error.message : "";
     const text = message === "No reliable sources were found for this question"
       ? "ตอนนี้เรายังหาแหล่งข้อมูลที่น่าเชื่อถือพอสำหรับคำถามนี้ไม่ได้\nเลยไม่อยากเดาคำตอบให้คุณนะคะ 🤍"
+      : message === "CHAT_CITATIONS_MISSING"
+        ? "ตอนนี้เรายังตรวจสอบแหล่งข้อมูลสำหรับคำแนะนำนี้ได้ไม่ครบ\nขอให้ลองส่งอีกครั้งนะคะ เราไม่อยากให้คำแนะนำที่ยังไม่มีข้อมูลรองรับค่ะ 🤍"
       : message === "CHAT_CREDITS_EXHAUSTED"
         ? "ตอนนี้ระบบตอบแชตยังไม่พร้อมใช้งาน\nโปรดกลับมาลองใหม่ภายหลังนะคะ 🤍"
       : message === "CHAT_RATE_LIMITED"
