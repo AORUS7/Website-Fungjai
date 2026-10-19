@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "media:catalog": "node scripts/generate-podcast-catalog.mjs",
     "prebuild": "node scripts/generate-podcast-catalog.mjs --require-web",
-    "predev": "npm run media:catalog"
+    "predev": "npm run media:catalog",
+    "test:chat": "node --experimental-strip-types --test tests/chat.test.mjs"
   },
   "dependencies": {
     "@vercel/node": "^3.0.0",
