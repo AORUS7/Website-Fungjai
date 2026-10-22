@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" fill="none">
+  <defs>
+    <linearGradient id="glass" x1="72" y1="42" x2="241" y2="286" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff" stop-opacity=".86"/><stop offset=".28" stop-color="#ffd8ed" stop-opacity=".12"/>
+      <stop offset=".6" stop-color="#ec86b6" stop-opacity=".4"/><stop offset=".83" stop-color="#fff5ff" stop-opacity=".82"/><stop offset="1" stop-color="#e899bb" stop-opacity=".55"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="78" y1="40" x2="233" y2="268" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white"/><stop offset=".4" stop-color="#e99cbd" stop-opacity=".25"/><stop offset=".7" stop-color="#dc83ac" stop-opacity=".65"/><stop offset=".9" stop-color="white"/><stop offset="1" stop-color="#efbed6"/>
+    </linearGradient>
+    <radialGradient id="pearl"><stop stop-color="white" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="14" stdDeviation="10" flood-color="#cc719c" flood-opacity=".22"/></filter>
+  </defs>
+  <path d="M160 278C139 262 40 194 35 123C29 48 114 24 160 83C206 24 291 48 285 123C280 194 181 262 160 278Z" fill="url(#glass)" stroke="url(#rim)" stroke-width="5" filter="url(#shadow)"/>
+  <ellipse cx="103" cy="100" rx="48" ry="29" transform="rotate(-35 103 100)" fill="url(#pearl)"/>
+  <path d="M53 124C49 81 86 54 115 66" stroke="white" stroke-opacity=".8" stroke-width="7" stroke-linecap="round"/>
+  <path d="M177 252C205 231 256 185 267 145" stroke="white" stroke-opacity=".64" stroke-width="5" stroke-linecap="round"/>
+  <path d="M61 164C75 207 125 248 150 261" stroke="#e6a1c1" stroke-opacity=".36" stroke-width="8" stroke-linecap="round"/>
+</svg>

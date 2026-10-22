@@ -9,6 +9,12 @@ const isActive = (path) => route.path === path;
 
 <template>
   <div class="page">
+    <!-- Decorative layer stays behind every route and never receives input. -->
+    <div class="app-backdrop" aria-hidden="true">
+      <span v-for="heart in 6" :key="heart" class="glass-heart" :class="`glass-heart--${heart}`"></span>
+      <span class="glass-sparkle glass-sparkle--1"></span>
+      <span class="glass-sparkle glass-sparkle--2"></span>
+    </div>
     <header v-if="$route.path !== '/login'" class="site-header">
       <div class="container site-header-inner">
         <div class="brand">
@@ -108,7 +114,8 @@ const isActive = (path) => route.path === path;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #fffaf8;
+  position: relative;
+  isolation: isolate;
 }
 
 .main-content {
@@ -117,7 +124,7 @@ const isActive = (path) => route.path === path;
 }
 
 .site-header {
-  background: rgba(255, 247, 244, 0.95);
+  background: rgba(255, 247, 251, 0.94);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid #f3d6d0;
   position: sticky;

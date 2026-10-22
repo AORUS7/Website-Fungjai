@@ -86,15 +86,17 @@ const login = async () => {
 
 <style scoped>
 .auth-page {
-  height: 100vh;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: 1.5rem 1rem;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #fff6f3;
+  background: transparent;
 }
 
 .auth-card {
-  width: 350px;
+  width: min(350px, 100%);
   padding: 2rem;
   border-radius: 20px;
   background: white;

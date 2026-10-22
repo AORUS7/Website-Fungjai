@@ -215,10 +215,7 @@ const goNext = (nextCategory) => {
 
 .podcast-page {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at 15% 10%, rgba(255,138,128,0.08), transparent 40%),
-    radial-gradient(circle at 85% 90%, rgba(255,138,128,0.06), transparent 40%),
-    #ffffff;
+  background: transparent;
   padding-bottom: 4rem;
 }
 
