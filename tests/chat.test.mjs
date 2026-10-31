@@ -4,7 +4,7 @@ import handler from '../api/chat.ts';
 import { immediateSupportReply } from '../src/lib/chat-support.mjs';
 
 const draft = 'ลองแบ่งงานเป็นช่วงสั้น ๆ และพักสายตาระหว่างช่วง';
-const evidence = [1, 2, 3].map((n) => ({ title: `Evidence ${n}`, url: `https://example.org/evidence-${n}`, content: `Evidence excerpt ${n}` }));
+const evidence = [1, 2, 3].map((n) => ({ title: `Evidence ${n}`, url: `https://example.org/evidence-${n}`, content: `Evidence excerpt ${n}: supporting passage for the test claim.` }));
 let keyCounter = 0;
 const completion = (content) => ({ choices: [{ message: { content } }] });
 
@@ -23,6 +23,17 @@ async function run(steps, { hf = false, text = 'ผู้ใช้เล่า�
   if (unconfigured) keys.forEach((key) => delete process.env[key]);
   const calls = [];
   globalThis.fetch = async (url, options) => {
+    const body = JSON.parse(options.body);
+    const isReview = body.messages?.[0]?.content.includes('คุณเป็นผู้ตรวจหลักฐาน');
+    const explicitReview = steps[calls.length]?.review;
+    if (isReview && !explicitReview) {
+      const { answer } = JSON.parse(body.messages[1].content);
+      const ids = [...new Set([...answer.matchAll(/\[(\d+)\]/g)].map((m) => Number(m[1])))];
+      return { ok: true, status: 200, json: async () => completion(JSON.stringify({
+        supported: true, allClaimsCovered: true,
+        evidence: ids.map((source) => ({ source, quote: evidence[source - 1].content })),
+      })) };
+    }
     const step = steps[calls.length];
     assert.ok(step, `Unexpected extra request: ${url}`);
     const call = { url, body: JSON.parse(options.body) };
@@ -251,4 +262,52 @@ test('failing over during final generation uses the same source context', async 
   assert.equal(result.code, 200);
   assert.deepEqual(result.calls[2].body.messages, result.calls[3].body.messages);
   assert.deepEqual(result.payload.sources.map((s) => s.url), [evidence[1].url]);
+});
+
+
+test('rejects the screenshot mismatch even when all citation numbers are valid', async () => {
+  const unrelated = [
+    { title: 'เกมแต่งตัวที่สามารถปรับแต่งตัวละครได้อย่างอิสระ', url: 'https://example.org/game', content: 'เกมนี้มีตัวละครและชุดให้เลือก สามารถปรับแต่งตัวละครได้อย่างอิสระ' },
+    { title: '10 เกร็ดความรู้เกี่ยวกับ RF ONLINE NEXT', url: 'https://example.org/rf', content: 'RF ONLINE NEXT เป็นเกมที่มีระบบตัวละครและภารกิจสำหรับผู้เล่น' },
+    { title: 'เกสต์เฮาส์ในสกีรีม', url: 'https://example.org/stay', content: 'รายชื่อที่พักและเกสต์เฮาส์สำหรับนักท่องเที่ยว พร้อมข้อมูลราคาและจองห้องพัก' },
+  ];
+  const result = await run([model(draft), { service: 'tavily', data: { results: unrelated } },
+    model('พื้นที่สงบช่วยให้ร่างกายและจิตใจพักผ่อน [2]'),
+    { ...model(JSON.stringify({ supported: false, allClaimsCovered: false, evidence: [] })), review: true },
+  ]);
+  assert.equal(result.code, 422);
+  assert.equal(result.payload.reply, undefined);
+  assert.equal(result.payload.sources, undefined);
+});
+
+test('rejects a review that fabricates a supporting passage', async () => {
+  const result = await run([model(draft), search, model('คำแนะนำ [1]'),
+    { ...model(JSON.stringify({ supported: true, allClaimsCovered: true,
+      evidence: [{ source: 1, quote: 'This supporting quote does not exist in the retrieved excerpt.' }] })), review: true },
+  ]);
+  assert.equal(result.code, 422);
+});
+
+test('empty excerpts cannot be cited based on a title alone', async () => {
+  const result = await run([model(draft), { service: 'tavily', data: { results: [
+    { title: 'Stress relief', url: 'https://example.org/stress', content: '' },
+  ] } }]);
+  assert.equal(result.code, 422);
+});
+
+test('evidence validation fails closed for missing claims, malformed output and incomplete coverage', async () => {
+  const { verifiedEvidence } = await import('../server/chat-evidence.mjs');
+  const quote = evidence[0].content;
+  const valid = { supported: true, allClaimsCovered: true, evidence: [{ source: 1, quote }] };
+  assert.equal(verifiedEvidence(JSON.stringify(valid), 'คำแนะนำ [1]', [quote]), true);
+  for (const review of [
+    { ...valid, allClaimsCovered: false },
+    { ...valid, supported: 'true' },
+    { ...valid, evidence: [] },
+    { ...valid, evidence: [{ source: 2, quote }] },
+    { ...valid, evidence: [{ source: 1, quote: 'short' }] },
+    { ...valid, evidence: [{ source: 1, quote }, { source: 1, quote }] },
+  ]) assert.equal(verifiedEvidence(JSON.stringify(review), 'คำแนะนำ [1]', [quote]), false);
+  assert.equal(verifiedEvidence('not JSON', 'คำแนะนำ [1]', [quote]), false);
+  assert.equal(verifiedEvidence(JSON.stringify(valid), 'คำแนะนำ [1] และ [2]', [quote, quote]), false);
 });
