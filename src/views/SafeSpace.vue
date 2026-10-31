@@ -230,9 +230,6 @@ const handleKeydown = (e) => {
               </button>
             </form>
 
-            <p class="chat-hint">
-              คำตอบที่อ้างอิงข้อมูลภายนอกจะแสดงแหล่งข้อมูลใต้ข้อความ · Enter = ส่ง · Shift + Enter = ขึ้นบรรทัดใหม่
-            </p>
           </div>
         </div>
       </section>
