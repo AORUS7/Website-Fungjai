@@ -38,7 +38,7 @@ export function createChatProviderRouter(env, {
     cooldowns.set(provider.cooldownKey, { until: now() + duration, status: response.status });
   }
 
-  async function complete(messages) {
+  async function complete(messages, { maxTokens = 2048 } = {}) {
     while (index < providers.length) {
       const provider = providers[index];
       activeProvider = provider.name;
@@ -57,10 +57,10 @@ export function createChatProviderRouter(env, {
       try {
         const body = { model: provider.model, messages, temperature: 0.2 };
         if (provider.id === 'groq') {
-          body.max_completion_tokens = 2048;
+          body.max_completion_tokens = maxTokens;
           if (provider.model.startsWith('openai/gpt-oss')) body.reasoning_effort = 'low';
         } else {
-          body.max_tokens = 2048;
+          body.max_tokens = maxTokens;
         }
         const response = await fetchImpl(provider.url, {
           method: 'POST', signal: controller.signal,

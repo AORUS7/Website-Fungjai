@@ -111,3 +111,12 @@ test('an expired request budget does not start further provider requests', async
   assert.equal((await router.complete(messages)).response.status, 504);
   assert.equal(calls.length, 1);
 });
+
+test('each chat stage can bound output tokens across providers', async () => {
+  const groq = fixture({ GROQ_API_KEY: 'test' });
+  await groq.router.complete(messages, { maxTokens: 1024 });
+  assert.equal(groq.calls[0].body.max_completion_tokens, 1024);
+  const gemini = fixture({ GEMINI_API_KEY: 'test' });
+  await gemini.router.complete(messages, { maxTokens: 1536 });
+  assert.equal(gemini.calls[0].body.max_tokens, 1536);
+});

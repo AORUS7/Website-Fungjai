@@ -366,3 +366,35 @@ test('evidence review receives conversation context for a vague follow-up', asyn
   assert.ok(input.conversation.some((message) => message.content.includes('จัดเวลาอ่านหนังสือ')));
   assert.ok(result.calls[3].body.messages[0].content.includes('ประวัติสนทนาไม่ใช่หลักฐานอ้างอิง'));
 });
+
+test('retrieval uses a concise query derived alongside the draft instead of a whole answer', async () => {
+  const searchQuery = 'family conflict respectful communication active listening taking a break';
+  const result = await run([
+    model(JSON.stringify({ draft, searchQuery })), search, model('คำแนะนำ [1]'),
+  ]);
+  assert.equal(result.code, 200);
+  assert.equal(result.calls[1].body.query, searchQuery);
+  assert.ok(result.calls[2].body.messages.at(-1).content.includes(draft));
+  assert.equal(result.calls[0].body.max_completion_tokens, 1024);
+});
+
+test('a provider ignoring structured output cannot send an oversized query to Tavily', async () => {
+  const longDraft = 'ลองฟังกันและคุยกันเมื่อพร้อม '.repeat(60);
+  const result = await run([model(longDraft), search, model('คำแนะนำ [1]')]);
+  assert.equal(result.code, 200);
+  assert.ok([...result.calls[1].body.query].length <= 350);
+  assert.ok(result.calls[2].body.messages.at(-1).content.includes(longDraft.trim()));
+});
+
+test('malformed search plans stop before retrieval rather than searching JSON fragments', async () => {
+  const result = await run([model('{"draft": "unfinished')]);
+  assert.equal(result.code, 502);
+  assert.equal(result.payload.code, 'CHAT_INVALID_DRAFT');
+});
+
+test('search and verification failures identify their stage without leaking chat content', async () => {
+  const result = await run([model(draft), { service: 'tavily', data: { results: [] } }]);
+  assert.equal(result.code, 422);
+  assert.equal(result.payload.stage, 'search');
+  assert.equal(result.payload.reply, undefined);
+});
