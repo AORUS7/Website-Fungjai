@@ -120,3 +120,35 @@ test('each chat stage can bound output tokens across providers', async () => {
   await gemini.router.complete(messages, { maxTokens: 1536 });
   assert.equal(gemini.calls[0].body.max_tokens, 1536);
 });
+
+
+test('GPT-OSS gets complete plain-text history as data without replaying assistant envelopes', async () => {
+  const conversation = [
+    { role: 'system', content: 'Keep citations and answer the latest question.' },
+    { role: 'assistant', content: 'Welcome to the reading planner.' },
+    { role: 'user', content: 'I have two chapters to read.' },
+    { role: 'assistant', content: 'How much time do you have?' },
+    { role: 'user', content: 'One hour. Suggest a schedule.' },
+  ];
+  const { router, calls } = fixture({ GROQ_API_KEY: 'test' }, {}, [(url, request) => {
+    const body = JSON.parse(request.body);
+    if (body.messages.some((message) => message.role === 'assistant')) {
+      return Response.json({ error: 'Invalid assistant envelope' }, { status: 400 });
+    }
+    return success();
+  }]);
+  const result = await router.complete(conversation);
+  assert.equal(result.response.status, 200);
+  assert.deepEqual(calls[0].body.messages[0], conversation[0]);
+  const replay = JSON.parse(calls[0].body.messages[1].content.split('Conversation data (JSON):\n')[1]);
+  assert.deepEqual(replay, conversation.slice(1));
+  assert.equal(calls[0].body.include_reasoning, false);
+});
+
+test('conversation adaptation leaves other providers and user-only GPT-OSS requests intact', async () => {
+  const { providerMessages } = await import('../server/chat-providers.mjs');
+  const history = [{ role: 'user', content: 'Question' }, { role: 'assistant', content: 'Answer' }, ...messages];
+  assert.equal(providerMessages('gemini', 'gemini-model', history), history);
+  assert.equal(providerMessages('groq', 'llama-3.1-8b-instant', history), history);
+  assert.equal(providerMessages('groq', 'openai/gpt-oss-20b', messages), messages);
+});

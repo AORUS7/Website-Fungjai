@@ -135,7 +135,8 @@ test('repairs missing citations on a follow-up like the study advice in the scre
 test('old assistant citation numbers are removed from both draft and grounding history', async () => {
   const result = await run([model(draft), search, model('คำแนะนำ [1]')]);
   for (const call of [result.calls[0], result.calls[2]]) {
-    const previous = call.body.messages.find((m) => m.role === 'assistant');
+    const history = JSON.parse(call.body.messages.at(-1).content.split('Conversation data (JSON):\n')[1]);
+    const previous = history.find((m) => m.role === 'assistant');
     assert.ok(previous);
     assert.ok(!previous.content.includes('[9]'));
   }
@@ -260,7 +261,9 @@ test('failing over during final generation uses the same source context', async 
     { service: 'googleapis', data: completion('คำแนะนำ [2]') },
   ], { gemini: true, order: 'groq,gemini' });
   assert.equal(result.code, 200);
-  assert.deepEqual(result.calls[2].body.messages, result.calls[3].body.messages);
+  assert.deepEqual(result.calls[2].body.messages[0], result.calls[3].body.messages[0]);
+  const groqConversation = JSON.parse(result.calls[2].body.messages.at(-1).content.split('Conversation data (JSON):\n')[1]);
+  assert.deepEqual(groqConversation, result.calls[3].body.messages.filter((m) => m.role !== 'system'));
   assert.deepEqual(result.payload.sources.map((s) => s.url), [evidence[1].url]);
 });
 
