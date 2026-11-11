@@ -1,14 +1,33 @@
 <script setup>
+import { onMounted, onBeforeUnmount, ref } from "vue";
 import { RouterLink, RouterView, useRoute } from "vue-router";
 
 const route = useRoute();
+const viewportStyle = ref({});
+const syncViewport = () => {
+  const viewport = window.visualViewport;
+  viewportStyle.value = viewport && viewport.scale === 1
+    ? { '--chat-viewport-height': `${viewport.height}px`, '--chat-viewport-top': `${viewport.offsetTop}px` }
+    : {};
+};
+onMounted(() => {
+  syncViewport();
+  window.visualViewport?.addEventListener('resize', syncViewport);
+  window.visualViewport?.addEventListener('scroll', syncViewport);
+  window.addEventListener('resize', syncViewport);
+});
+onBeforeUnmount(() => {
+  window.visualViewport?.removeEventListener('resize', syncViewport);
+  window.visualViewport?.removeEventListener('scroll', syncViewport);
+  window.removeEventListener('resize', syncViewport);
+});
 const year = new Date().getFullYear();
 
 const isActive = (path) => route.path === path;
 </script>
 
 <template>
-  <div class="page">
+  <div class="page" :class="{ 'chat-page': isActive('/safe-space') }" :style="viewportStyle">
     <!-- Decorative layer stays behind every route and never receives input. -->
     <div class="app-backdrop" aria-hidden="true">
       <span v-for="heart in 6" :key="heart" class="glass-heart" :class="`glass-heart--${heart}`"></span>
@@ -248,5 +267,26 @@ const isActive = (path) => route.path === path;
   .only-mobile {
     display: flex;
   }
+}
+</style>
+<style scoped>
+@media (max-width: 768px) {
+  .chat-page {
+    position: fixed;
+    top: var(--chat-viewport-top, 0px);
+    inset-inline: 0;
+    height: 100vh;
+    height: var(--chat-viewport-height, 100dvh);
+    min-height: 0;
+    padding-bottom: 0;
+    overflow: hidden;
+  }
+  .chat-page .site-header { flex: none; padding-top: env(safe-area-inset-top, 0px); }
+  .chat-page .site-header-inner { padding-block: .35rem; }
+  .chat-page .brand-mark { width: 28px; height: 28px; }
+  .chat-page .brand-text-sub { display: none; }
+  .chat-page .mobile-nav { padding: .25rem .5rem; gap: .15rem; }
+  .chat-page .mobile-link { padding: .3rem 0; min-width: 0; }
+  .chat-page .main-content { display: flex; min-height: 0; padding: 0; overflow: hidden; }
 }
 </style>

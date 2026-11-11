@@ -2,7 +2,11 @@
 // Search results and model output are untrusted; malformed reviews fail closed.
 export function verifiedEvidence(reviewText, reply, excerpts) {
   try {
-    const review = JSON.parse(reviewText);
+    // Models sometimes wrap otherwise valid JSON in a Markdown code fence.
+    // Accept only a single complete envelope; never extract JSON from arbitrary prose.
+    if (typeof reviewText !== 'string') return false;
+    const json = reviewText.trim().replace(/^```(?:json)?\s*\n([\s\S]*?)\n```$/i, '$1');
+    const review = JSON.parse(json);
     if (review.supported !== true || review.allClaimsCovered !== true || !Array.isArray(review.evidence)) return false;
     const cited = new Set([...reply.matchAll(/\[(\d+)\]/g)].map((match) => Number(match[1])));
     if (!cited.size || review.evidence.length !== cited.size) return false;

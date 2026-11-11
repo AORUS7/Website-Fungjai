@@ -274,6 +274,8 @@ test('rejects the screenshot mismatch even when all citation numbers are valid',
   const result = await run([model(draft), { service: 'tavily', data: { results: unrelated } },
     model('พื้นที่สงบช่วยให้ร่างกายและจิตใจพักผ่อน [2]'),
     { ...model(JSON.stringify({ supported: false, allClaimsCovered: false, evidence: [] })), review: true },
+    model('พื้นที่สงบช่วยให้ร่างกายและจิตใจพักผ่อน [2]'),
+    { ...model(JSON.stringify({ supported: false, allClaimsCovered: false, evidence: [] })), review: true },
   ]);
   assert.equal(result.code, 422);
   assert.equal(result.payload.reply, undefined);
@@ -284,6 +286,9 @@ test('rejects a review that fabricates a supporting passage', async () => {
   const result = await run([model(draft), search, model('คำแนะนำ [1]'),
     { ...model(JSON.stringify({ supported: true, allClaimsCovered: true,
       evidence: [{ source: 1, quote: 'This supporting quote does not exist in the retrieved excerpt.' }] })), review: true },
+    model('คำแนะนำที่ยังไม่ผ่าน [1]'),
+    { ...model(JSON.stringify({ supported: true, allClaimsCovered: true,
+      evidence: [{ source: 1, quote: 'Another invented supporting quote that is absent from the excerpt.' }] })), review: true },
   ]);
   assert.equal(result.code, 422);
 });
@@ -310,4 +315,54 @@ test('evidence validation fails closed for missing claims, malformed output and 
   ]) assert.equal(verifiedEvidence(JSON.stringify(review), 'คำแนะนำ [1]', [quote]), false);
   assert.equal(verifiedEvidence('not JSON', 'คำแนะนำ [1]', [quote]), false);
   assert.equal(verifiedEvidence(JSON.stringify(valid), 'คำแนะนำ [1] และ [2]', [quote, quote]), false);
+});
+
+
+test('an evidence rejection rebuilds the answer once and independently verifies the replacement', async () => {
+  const result = await run([model(draft), search, model('คำแนะนำเดิมที่หลักฐานไม่รองรับ [1]'),
+    { ...model(JSON.stringify({ supported: false, allClaimsCovered: false, evidence: [] })), review: true },
+    model('คำแนะนำใหม่ที่หลักฐานรองรับ [2]'),
+  ]);
+  assert.equal(result.code, 200);
+  assert.equal(result.payload.reply, 'คำแนะนำใหม่ที่หลักฐานรองรับ [1]');
+  assert.deepEqual(result.payload.sources, [{ title: evidence[1].title, url: evidence[1].url }]);
+  assert.ok(result.calls[4].body.messages[0].content.includes(evidence[1].content));
+  assert.equal(result.calls.filter((call) => call.url.includes('tavily')).length, 1);
+});
+
+test('an uncited evidence repair is never returned and cannot loop', async () => {
+  const result = await run([model(draft), search, model('คำแนะนำเดิม [1]'),
+    { ...model(JSON.stringify({ supported: false, allClaimsCovered: false, evidence: [] })), review: true },
+    model('ยังไม่มีหลักฐานเพียงพอค่ะ'),
+  ]);
+  assert.equal(result.code, 422);
+  assert.equal(result.payload.code, 'CHAT_EVIDENCE_UNAVAILABLE');
+  assert.equal(result.payload.reply, undefined);
+});
+
+test('a valid review wrapped in a JSON code fence retains strict evidence checks', async () => {
+  const review = JSON.stringify({ supported: true, allClaimsCovered: true,
+    evidence: [{ source: 1, quote: evidence[0].content }] });
+  const result = await run([model(draft), search, model('คำแนะนำ [1]'),
+    { ...model('```json\n' + review + '\n```'), review: true },
+  ]);
+  assert.equal(result.code, 200);
+  const { verifiedEvidence } = await import('../server/chat-evidence.mjs');
+  assert.equal(verifiedEvidence('prose\n' + review, 'คำแนะนำ [1]', [evidence[0].content]), false);
+});
+
+
+test('evidence review receives conversation context for a vague follow-up', async () => {
+  const review = JSON.stringify({ supported: true, allClaimsCovered: true,
+    evidence: [{ source: 1, quote: evidence[0].content }] });
+  const result = await run([model(draft), search, model('คำแนะนำ [1]'),
+    { ...model(review), review: true },
+  ], { text: 'ช่วยแนะนำคำตอบล่าสุดทีครับ', history: [
+    { role: 'user', content: 'มีวิธีจัดเวลาอ่านหนังสืออย่างไรบ้าง' },
+  ] });
+  assert.equal(result.code, 200);
+  const input = JSON.parse(result.calls[3].body.messages[1].content);
+  assert.equal(input.question, 'ช่วยแนะนำคำตอบล่าสุดทีครับ');
+  assert.ok(input.conversation.some((message) => message.content.includes('จัดเวลาอ่านหนังสือ')));
+  assert.ok(result.calls[3].body.messages[0].content.includes('ประวัติสนทนาไม่ใช่หลักฐานอ้างอิง'));
 });

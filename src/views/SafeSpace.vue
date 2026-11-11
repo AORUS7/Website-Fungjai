@@ -13,20 +13,21 @@ const messages = ref([
   },
 ]);
 
+const messageBody = ref(null);
 const userInput = ref("");
 const isTyping = ref(false);
 let idCounter = 2;
 
 const scrollToBottom = async () => {
   await nextTick();
-  const box = document.querySelector(".chat-window-body");
+  const box = messageBody.value;
   if (box) {
     box.scrollTop = box.scrollHeight;
   }
 };
 
-const sendMessage = async () => {
-  const text = userInput.value.trim();
+const sendMessage = async (retryText) => {
+  const text = (typeof retryText === "string" ? retryText : userInput.value).trim();
   if (!text || isTyping.value) return;
 
   messages.value.push({
@@ -58,7 +59,7 @@ const sendMessage = async () => {
       data = { reply: immediate, sources: [] };
     } else {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 45_000);
+      const timeout = setTimeout(() => controller.abort(), 65_000);
       try {
         const response = await fetch("/api/chat", {
           method: "POST",
@@ -66,9 +67,17 @@ const sendMessage = async () => {
           body: JSON.stringify({ messages: llmMessages }),
           signal: controller.signal,
         });
-        data = await response.json();
+        // Hosting errors can be HTML/plain text rather than the API JSON contract.
+        const payload = await response.text();
+        try { data = JSON.parse(payload); }
+        catch {
+          throw new Error([408, 504].includes(response.status) ? "CHAT_TIMEOUT"
+            : response.status === 429 ? "CHAT_RATE_LIMITED"
+            : response.status === 404 || response.ok ? "CHAT_ENDPOINT_UNAVAILABLE"
+            : "CHAT_SERVICE_UNAVAILABLE");
+        }
         if (!response.ok || !data.reply) {
-          throw new Error(data?.code || data?.error || "Chat service is unavailable");
+          throw new Error(data?.code || ([408, 504].includes(response.status) ? "CHAT_TIMEOUT" : response.status === 429 ? "CHAT_RATE_LIMITED" : data?.error) || "CHAT_SERVICE_UNAVAILABLE");
         }
       } catch (error) {
         if (error instanceof Error && error.name === "AbortError") {
@@ -93,7 +102,7 @@ const sendMessage = async () => {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
-    const text = message === "No reliable sources were found for this question"
+    const errorText = message === "No reliable sources were found for this question" || message === "CHAT_EVIDENCE_UNAVAILABLE"
       ? "ตอนนี้เรายังหาแหล่งข้อมูลที่น่าเชื่อถือพอสำหรับคำถามนี้ไม่ได้\nเลยไม่อยากเดาคำตอบให้คุณนะคะ 🤍"
       : message === "CHAT_CITATIONS_MISSING"
         ? "ตอนนี้เรายังตรวจสอบแหล่งข้อมูลสำหรับคำแนะนำนี้ได้ไม่ครบ\nขอให้ลองส่งอีกครั้งนะคะ เราไม่อยากให้คำแนะนำที่ยังไม่มีข้อมูลรองรับค่ะ 🤍"
@@ -105,13 +114,22 @@ const sendMessage = async () => {
         ? "ตอนนี้บริการตอบแชตถึงขีดจำกัดการใช้งานชั่วคราว\nจึงยังตอบคำถามเพิ่มเติมไม่ได้ หากอยากเล่าความรู้สึกสั้น ๆ เรายังรับฟังได้ค่ะ 🤍"
       : message === "Chat service is not configured" || message === "CHAT_CONFIGURATION_ERROR"
         ? "ตอนนี้ระบบค้นข้อมูลยังไม่ได้ตั้งค่าเรียบร้อย\nโปรดลองใหม่อีกครั้งในภายหลังนะคะ 🤍"
-        : "ขอโทษนะคะ เหมือนการเชื่อมต่อจะสะดุดนิดหน่อย\nแต่เรายังอยู่ตรงนี้นะคะ 🤍";
+        : message === "CHAT_SEARCH_UNAVAILABLE"
+          ? "ตอนนี้บริการค้นแหล่งอ้างอิงไม่พร้อมค่ะ จึงยังตรวจคำตอบให้ไม่ได้ ลองอีกครั้งภายหลังได้นะคะ"
+        : message === "CHAT_PROVIDER_UNAVAILABLE"
+          ? "ตอนนี้บริการ AI ไม่ตอบกลับค่ะ ลองส่งคำถามเดิมอีกครั้งภายหลังได้นะคะ"
+        : message === "CHAT_ENDPOINT_UNAVAILABLE"
+          ? "ตอนนี้ยังเชื่อมต่อบริการตอบแชตไม่ได้ค่ะ กรุณาลองใหม่ภายหลัง"
+        : typeof navigator !== "undefined" && !navigator.onLine
+          ? "ตอนนี้อุปกรณ์ไม่ได้เชื่อมต่ออินเทอร์เน็ตค่ะ เชื่อมต่อแล้วกดลองอีกครั้งได้เลย"
+          : "ตอนนี้บริการตอบแชตยังตอบกลับไม่สำเร็จค่ะ คุณกดลองอีกครั้งเพื่อส่งคำถามเดิมได้ 🤍";
 
     messages.value.push({
       id: idCounter++,
       from: "bot",
       name: "FUNGJAI",
-      text,
+      text: errorText,
+      retryText: text,
       time: "เมื่อสักครู่",
       sources: [],
       isError: true,
@@ -123,7 +141,7 @@ const sendMessage = async () => {
 };
 
 const handleKeydown = (e) => {
-  if (e.key === "Enter" && !e.shiftKey) {
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
     e.preventDefault();
     sendMessage();
   }
@@ -131,7 +149,7 @@ const handleKeydown = (e) => {
 </script>
 
 <template>
-  <div class="page">
+  <div class="page safe-space-page">
     <main>
       <section class="hero">
         <div class="container hero-inner">
@@ -165,6 +183,8 @@ const handleKeydown = (e) => {
 
             <div
               class="chat-window-body"
+              ref="messageBody"
+              role="log" aria-live="polite" aria-label="บทสนทนา"
               @touchstart.stop
               @touchmove.stop
               @touchend.stop
@@ -186,6 +206,7 @@ const handleKeydown = (e) => {
                       {{ line }}
                     </p>
                   </div>
+                  <button v-if="m.isError" type="button" class="chat-retry" :disabled="isTyping" @click="sendMessage(m.retryText)">ลองอีกครั้ง</button>
                   <p class="chat-bubble-meta">{{ m.time }}</p>
                   <div v-if="m.from === 'bot' && m.sources?.length" class="chat-sources">
                     <p class="chat-sources-title">แหล่งข้อมูล</p>
@@ -210,9 +231,10 @@ const handleKeydown = (e) => {
               </div>
             </div>
 
-            <form class="chat-input-row" @submit.prevent="sendMessage">
+            <form class="chat-input-row" @submit.prevent="sendMessage()">
               <textarea
                 v-model="userInput"
+                aria-label="ข้อความถึง FUNGJAI"
                 class="chat-input"
                 placeholder="อยากเล่าอะไรให้ FUNGJAI ฟังบ้างคะ..."
                 rows="2"
@@ -433,5 +455,34 @@ const handleKeydown = (e) => {
   .chat-input {
     font-size: 16px;
   }
+}
+</style>
+
+<style scoped>
+.chat-window { height: min(75vh, 760px); min-height: 320px; background: rgba(255, 250, 253, .92); }
+.chat-window-body { min-height: 0; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
+.chat-window-header, .chat-input-row, .chat-avatar { flex-shrink: 0; }
+.chat-message-row { gap: .5rem; min-width: 0; align-items: flex-start; margin-bottom: .75rem; }
+.chat-bubble { min-width: 0; overflow-wrap: anywhere; }
+.chat-input { min-width: 0; resize: none; max-height: 100px; font-family: inherit; }
+.chat-retry { border: 1px solid #ffd7d0; border-radius: 12px; padding: .4rem .7rem; background: #fff1f6; color: #9b484f; cursor: pointer; }
+@media (max-width: 768px) {
+  .safe-space-page { flex: 1; min-height: 0; padding: 0; width: 100%; }
+  .safe-space-page > main { display: flex; flex-direction: column; min-height: 0; }
+  .hero { flex: none; padding: .35rem 0; }
+  .hero-highlight, .hero-text { display: none; }
+  .hero-title { font-size: .85rem; margin: 0; text-align: center; }
+  .section { display: flex; flex: 1; min-height: 0; padding: 0; }
+  .chat-layout { min-height: 0; padding: 0 .4rem; }
+  .chat-window { height: 100%; min-height: 0; max-width: none; padding: .5rem; border-radius: 16px 16px 0 0; overflow: hidden; }
+  .chat-window-header { padding: .35rem .6rem; align-items: center; margin: 0; }
+  .chat-window-header .chat-avatar { width: 30px; height: 30px; }
+  .chat-title { font-size: .85rem; font-weight: 700; }
+  .chat-subtitle { font-size: .7rem; }
+  .chat-window-body { padding: .6rem .15rem; }
+  .chat-bubble { max-width: calc(100% - 34px); padding: .6rem .75rem; }
+  .is-user .chat-bubble { max-width: 88%; }
+  .chat-input-row { flex: none; align-items: stretch; padding-bottom: max(.4rem, env(safe-area-inset-bottom, 0px)); background: rgba(255, 250, 253, .96); }
+  .chat-input { font-size: 16px; }
 }
 </style>
